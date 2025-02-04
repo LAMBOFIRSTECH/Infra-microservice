@@ -1,0 +1,8 @@
+---
+# vars file for VM_Config/Linux_roles/Join_ad
+domain: "lamboft.it"
+domain_user: "administrateur"
+domain_password: "!!Art94721805&"
+krb5_conf_template: "krb5.conf.j2"
+sssd_conf_template: "sssd.conf.j2"
+server: "srv-01"

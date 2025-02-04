@@ -1,0 +1,61 @@
+all:
+  children:
+    # Groupe pour la machine physique Windows 10
+    jump_hosts:
+      hosts:
+        LAMBOFT:
+          ansible_host: 192.168.1.12
+      vars:
+        ansible_user: ansibleWinRm 
+        ansible_password: !vault |
+              $ANSIBLE_VAULT;1.1;AES256
+              33653033643566643132303634306632626466366337636564643061383661653863343836643332
+              3839383238313261383033643230653030383330363365360a366562316432323264633366383437
+              64363035396537333536376136353930303034316630383366646663313566616366373335376236
+              3066356338616636370a356231663634303532613637396239643139373961326134623433663763
+              32383839643430333535313936653236316231363732613537663438643233353762303335623235
+              3862666137613637303465353536626264346261303166343235
+        ansible_port: 5985
+        ansible_connection: winrm
+        ansible_winrm_scheme: http
+        ansible_winrm_transport: ntlm
+        ansible_winrm_server_cert_validation: ignore
+        ansible_python_interpreter: 'C:\Program Files\Python311\python.exe'
+       
+
+
+    # Groupe pour toutes les machines Linux
+    # linux_servers:
+    #   hosts:
+    #     vms-001-ubuntu:
+    #       ansible_host: 192.168.153.131
+    #     vms-002-Server:
+    #       ansible_host: 192.168.153.132
+    #     vms-003-centos7:
+    #       ansible_host: 192.168.153.133
+
+    #   vars:
+    #     ansible_user: lambo
+    #     ansible_port: 22  # Port SSH standard pour Linux
+    #     ansible_connection: ssh
+    #     ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p ansibleWinRm@192.168.1.12" -o ControlMaster=auto -o ControlPersist=60s'
+    #     ansible_python_interpreter: '/usr/bin/python3'
+    #     become: yes
+    #     become_method: sudo
+
+   # Groupe pour les machines Windows Server VMs
+    windows_servers:
+      hosts:
+        srv-prod:
+          ansible_host: 192.168.153.130
+
+      vars:
+        ansible_user: administrateur
+        ansible_password: "!!Art94721805&" 
+        ansible_port: 222  # Port spécifique pour Windows Servers
+        ansible_connection: ssh
+        ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p ansibleWinRm@192.168.1.12" -o ControlMaster=auto -o ControlPersist=60s'
+        ansible_python_interpreter: 'C:\Program Files\Python\Python312\python.exe'
+        become: yes
+        become_method: runas
+

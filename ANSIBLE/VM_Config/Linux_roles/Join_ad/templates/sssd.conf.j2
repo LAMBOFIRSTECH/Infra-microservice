@@ -1,0 +1,12 @@
+[sssd]
+services = nss, pam
+config_file_version = 2
+domains = {{ domain }}
+[domain/{{ domain }}]
+id_provider = ad
+access_provider = ad
+override_homedir = /home/%d/%u
+default_shell = /bin/bash
+fallback_homedir = /home/%u
+use_fully_qualified_names = False
+ldap_id_mapping = True

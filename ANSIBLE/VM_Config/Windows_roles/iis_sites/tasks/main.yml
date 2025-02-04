@@ -1,0 +1,13 @@
+---
+# tasks file for VM_Config/Windows_roles/iis_sites
+
+- block:
+    - name: Installation de l'outil chocolatey sur windows
+      ansible.windows.win_command: |
+        if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+          Set-ExecutionPolicy Bypass -Scope Process -Force;
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'));
+        }
+      args:
+        creates: C:\ProgramData\chocolatey\bin\choco.exe

@@ -1,0 +1,12 @@
+---
+- hosts: all
+  vars_files:
+    - vault.yml
+  gather_facts: no
+  serial: 1
+  roles:
+    # - role: '/home/snow/Ansible_WinRm/VM_Config/Linux_roles/Test_role'
+    # - role: '/home/snow/Ansible_WinRm/VM_Config/windows_roles'
+    #- role: '/home/snow/Ansible_WinRm/VM_Config/Linux_roles/Nginx_role'
+    #- role: '/home/snow/Ansible_WinRm/VM_Config/Linux_roles/Join_ad'
+    - role: '/home/snow/Ansible_WinRm/VM_Config/Windows_roles/iis_sites'

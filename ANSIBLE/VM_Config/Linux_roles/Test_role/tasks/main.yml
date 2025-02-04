@@ -1,0 +1,10 @@
+---
+# tasks file for VM_Config/Linux_roles/Test_role
+
+- block:
+    - name: Création du fichier papa.json à la racine (equivalent to 0644)
+      ansible.builtin.file:
+        path: /home/lambo/papa.json
+        state: touch
+        mode: u=rw,g=r,o=r
+  when: "'vms-linux-redhat' or 'vms-linux-deb' in group_names" 

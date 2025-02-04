@@ -1,0 +1,25 @@
+windows10:
+  hosts:
+    LAMBOFT:
+      ansible_host: 192.168.1.12 
+  vars:
+    ansible_shell_type: powershell
+    ansible_user: ansibleWinRm
+    ansible_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          63623438626365613531316131346530343266663138323262303961633133316433643930353333
+          3635323463343437656530363266653136306536333939650a666137333939336330636430626333
+          37303861303335643936316538656365623531643437656638363535656339396238386638396464
+          3964396364623161390a626333313537353139383462653439613236616234326234646161343439
+          3863
+    ansible_port: 5985
+    ansible_connection: winrm
+    ansible_winrm_scheme: http
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
+    ansible_python_interpreter: 'C:\program files\Python311\python.exe'
+
+
+
+
+

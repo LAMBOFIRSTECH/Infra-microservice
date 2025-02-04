@@ -1,0 +1,19 @@
+---
+# tasks file for Win_Config/Nginx_role
+- block:
+    - name: Définition d'un dépot EPEL.
+      ansible.builtin.yum:
+        name: epel-release
+        state: present
+
+    - name: Installation de Nginx RedHat.
+      ansible.builtin.yum:
+        name: nginx
+        state: latest
+
+    - name: Demarrage du service nginx
+      service:
+        name: nginx
+        state: started
+        # enabled: yes
+  when: "'vms-linux-redhat' in group_names"  

@@ -1,0 +1,56 @@
+
+### Configuration statique
+
+## On va définir :
+# - Les entrypoints
+# - Les providers
+# - Les metrics   si on souhaite intégrer des outils comme prométheus plustard
+# - Les accessLog
+# - Les Resolvers
+api:
+  dashboard: true
+  debug: true
+  insecure: true # Désactiver quand on aura le certificat
+
+entryPoints:
+  http:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: https
+          scheme: https
+
+  https:
+    address: :443
+serversTransport:
+  insecureSkipVerify: true # A voir
+providers:
+  file:
+    filename: dynamic.yml
+    watch: true
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false # Empeche traefik de router automatiquement tous les conteneurs exposés seuls ceux qui ont été configurés seront routés
+
+accesslog:
+  filePath: "./access.log"
+  format: "json"
+  filters:
+    statusCodes: [ "200", "300-399", "400-499" ] # Filtrer les logs par codes de statut HTTP
+  fields:
+    defaultMode: keep
+
+certificatesResolvers:
+  ovh:
+    acme:
+      email: landryfomene@meloaude.com
+      storage: acme.json
+      #  caServer: https://acme-v02.api.letsencrypt.org/directory Uniquement pour l'env de production
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      dnschallenge:
+        provider: ovh
+        disablePropagationCheck: true # Mettre à false quand la propagation des enregistremenst DNS sera effective
+        resolvers:
+        - "1.1.1.1:53"
+        - "8.8.8.8:53"

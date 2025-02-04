@@ -1,0 +1,102 @@
+---
+# tasks file for VM_Config/Linux_roles/Join_ad
+
+- block:
+    - name: Installation des paquets nécesssaires pour joindre le domaine active directory
+      yum:
+        name:
+          - realmd
+          - sssd
+          - adcli
+          - samba-common
+          - oddjob
+          - oddjob-mkhomedir
+          - krb5-workstation
+          - openldap-clients
+          - policycoreutils-python
+          - expect
+        state: present
+
+
+    - name: Install pip3
+      yum:
+        name: python3-pip
+        state: present
+
+
+    - name: Install pexpect module
+      pip:
+        name: pexpect
+        state: present
+        executable: pip3
+
+    - name: Install required packages for domain join
+      yum:
+        name:
+          - oddjob
+          - oddjob-mkhomedir
+          - sssd
+          - samba-common-tools
+        state: present
+    
+
+    - name: Configuration de Kerberos méthode d'authentification
+      template:
+        src: "{{ krb5_conf_template }}"
+        dest: /etc/krb5.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+
+    - name: Decouverte du domaine
+      command: realm discover {{ domain }}
+      register: realm_discover
+      ignore_errors: true
+
+
+    - name: Joindre le domaine
+      expect:
+        command: realm join --user={{ domain_user }} {{ domain }}
+        responses:
+          'Password for *': "{{ domain_password }}"
+      register: realm_join
+      ignore_errors: True
+
+
+    - name: Verification de la configuration de SSSD 
+      template:
+        src: "{{ sssd_conf_template }}"
+        dest: /etc/sssd/sssd.conf
+        owner: root
+        group: root
+        mode: '0600'
+
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+      
+
+    - name: Redemarrer et rendre permanent SSSD
+      systemd:
+        name: sssd.service
+        state: restarted
+        enabled: yes
+
+
+    - name: Configuration PAM pour la création de repertoire local pour les utilisateurs AD
+      lineinfile:
+        path: /etc/pam.d/common-session
+        line: "session required pam_mkhomedir.so skel=/etc/skel umask=0077"
+        state: present
+
+
+    - name: Verifions que realmd et oddjobd sont permenants et en cours d'exécution
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      with_items:
+        - realmd
+        - oddjobd
+  when: "'vms-linux-redhat' in group_names" 

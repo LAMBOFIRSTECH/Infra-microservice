@@ -1,0 +1,58 @@
+version: '3.7'
+services:
+  traefik:
+    image: traefik:v3.2 # Ne pas utiliser latest toujours une version LTS
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy_inverse
+    ports:
+      - 80:80
+      - 443:443
+      - 7080:8080  # A desactiver quand on aura le certificat (juste pour voir le dashboard en lui meme)
+  # Passer dans la configuration statique (static.yml api secure à false en prod)
+    environment:
+      DASHBOARD_TRAEFIK_AUTH : ${DASHBOARD_TRAEFIK_AUTH}
+
+      OVH_APPLICATION_KEY: ${OVH_APPLICATION_KEY}
+      OVH_APPLICATION_SECRET: ${OVH_APPLICATION_SECRET}
+      OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY}
+    env_file: .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/static.yml:/traefik.yml:ro
+      - ./data/acme.json:/acme.json  # chmod 600
+      - ./data/dynamic.yml:/dynamic.yml:ro
+    labels:
+   # On active traefik dans le docker-compose avec traefik.enable = true
+      - "traefik.enable=true"
+  # Définition de la configuration dynamic de traefik
+  #  - router traefik dashboard http
+  #          - traefik middlewares (basic-auth[passer la varibale d'env défini ci-haut],redirect et directives headers ) <-- dans l'ordre
+  #          - traefik tls certResolver
+      - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.routers.traefik.rule=Host(`traefikStaging.meloaude.com`) && Path(`/traefik`)"
+      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${DASHBOARD_TRAEFIK_AUTH}"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+
+ # On fait pointer chaque middleware aux routeurs de traefik
+   #   - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefikStaging.meloaude.com`) && Path(`/traefik-secure`)"
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth,sslheader"
+
+ # Configuration pour tls sur le routeur traefik-secure
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certResolver=ovh"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=meloaude.com"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.meloaude.com" # Pour tous les sous domaines
+      - "traefik.http.routers.traefik-secure.service=api@internal" # On protège l'api traefik -> propagation de la protection sur tous les services derrières traefik
+
+networks:
+  proxy_inverse:   # A créer avant le lancement du docker-compose `docker network create proxy_inverse` NB : Tous les  services doivent appartenir à ce reseau
+    external: true # Permet à d'autres services de pouvoir consommer ce reséau (Réseau de base tous les services vont se plugger sur ce réseau)
