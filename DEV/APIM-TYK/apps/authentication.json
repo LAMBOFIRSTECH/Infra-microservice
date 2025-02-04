@@ -1,7 +1,7 @@
 {
     "name": "authentication",
     "slug": "dev-authentication",
-    "api_id": "meloaudeAccountingService",
+    "api_id": "authenticationService",
     "org_id": "1",
     "auth": {
       "auth_header_name": "Authorization",
