@@ -35,7 +35,7 @@ all:
     #       ansible_host: 192.168.153.133
 
     #   vars:
-    #     ansible_user: lambo
+    #     ansible_user: admin
     #     ansible_port: 22  # Port SSH standard pour Linux
     #     ansible_connection: ssh
     #     ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p ansibleWinRm@192.168.1.12" -o ControlMaster=auto -o ControlPersist=60s'
@@ -51,7 +51,7 @@ all:
 
       vars:
         ansible_user: administrateur
-        ansible_password: "!!Art94721805&" 
+        ansible_password: "" 
         ansible_port: 222  # Port spécifique pour Windows Servers
         ansible_connection: ssh
         ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p ansibleWinRm@192.168.1.12" -o ControlMaster=auto -o ControlPersist=60s'
