@@ -1,0 +1,33 @@
+# add 1741469419 dc=lamboft,dc=it cn=admin,dc=lamboft,dc=it IP=172.24.0.3:59242 conn=1021
+dn: cn=Afanda Kadour,ou=groupe,dc=lamboft,dc=it
+changetype: add
+givenName: Afanda
+sn: Kadour
+cn: Afanda Kadour
+mail: afanda.kadour@lamboft.it
+userPassword:: e1NIQTUxMn1FT0JybVExRTNnQ1JvaEUvMlZ5Uy9KQlJacThVZXFkakpqbkVHc
+ WZ5YXhZZ3hIUkRnVHhnVzVKTUJWa2NGaDdNTlpSUHhweEVNNlNkRVB4ckJLTTJFUT09
+title: Administrateur
+roomNumber: 308
+street: CHBRE 104
+l:: c2NoaWx0aWdoZWltIA==
+st: Grand Est
+postalCode: 67300
+telephoneNumber: 0769192350
+mobile: 0769192350
+objectClass: inetOrgPerson
+objectClass: top
+structuralObjectClass: inetOrgPerson
+entryUUID: 47793598-90b0-103f-8add-4701dcb1f435
+creatorsName: cn=admin,dc=lamboft,dc=it
+createTimestamp: 20250308213019Z
+entryCSN: 20250308213019.554103Z#000000#000#000000
+modifiersName: cn=admin,dc=lamboft,dc=it
+modifyTimestamp: 20250308213019Z
+# end add 1741469419
+
+# delete 1741469698 dc=lamboft,dc=it cn=admin,dc=lamboft,dc=it IP=172.24.0.3:59682 conn=1027
+dn: cn=Afanda Kadour,ou=groupe,dc=lamboft,dc=it
+changetype: delete
+# end delete 1741469698
+

@@ -1,0 +1,15 @@
+version: '3.3'
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: KUMA-UPTIME
+    restart: always
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "3001:3001"
+
+volumes:
+  data:
+

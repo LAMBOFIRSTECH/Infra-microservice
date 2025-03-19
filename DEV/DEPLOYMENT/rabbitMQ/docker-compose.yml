@@ -6,10 +6,6 @@ services:
     ports:
       - "5672:5672"     # Port pour les connexions des clients
       - "15672:15672"   # Port pour l'interface graphique
-    networks:
-      net_api:
-        ipv4_address: 172.28.0.5
-
     volumes:
       - ./data:/data
     environment:
@@ -18,7 +14,3 @@ services:
     restart: always
 volumes:
   data:
-
-networks:
-  net_api:
-    external: true

@@ -78,8 +78,18 @@ else
     echo "Authentification réussie"
 fi
 
-# Ajouter une valeur de test à "my-secret-lambo"
-vault kv put kv-v2/auth-service authenticationSignatureKey=toto
-
+# Chaine de connection à RabbitMQ
+vault kv put kv-v2/secret/rabbit-connection rabbitMqConnectionString='admin:password$1@172.17.0.2:5672'
 # Vérifier que la valeur a bien été ajoutée et stockée dans Vault
-vault kv get kv-v2/auth-service
+vault kv get kv-v2/secret/rabbit-connection
+
+# Mot de passe ldap
+vault kv put kv-v2/secret/ldap-pass ldapPassword=$(printf "password\\$1")
+vault kv get kv-v2/secret/ldap-pass
+
+if [[ $? -ne 0 ]]; then
+    colors "RED" "Échec lors de l'authentification vault."
+    exit 1
+fi
+
+colors "GREEN" "Terminer avec succès."
