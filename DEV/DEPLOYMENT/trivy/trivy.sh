@@ -12,7 +12,11 @@ colors() {
     NC="\033[0m" # Réinitialisation
     printf "${!1}${2} ${NC}\n"
 }
-
+if [ ! -f .env.ci ]; then
+    colors "RED" "Erreur : Fichier .env.ci non trouvé. Veuillez configurer les variables nécessaires."
+    exit 1
+fi
+source .env.ci
 # Lien pour accéder au rapport de vulnérabilités
 lien=https://develop.lamboft.it/trivy-report
 # Répertoire racine du projet
@@ -27,11 +31,14 @@ if [ -z "$csproj_files" ]; then
     exit 1
 fi
 # Créer un repertoire pour le rapports trivy
-REPORT_DIR="./trivy_reports"
-mkdir -p "$REPORT_DIR"
+REPORT_DIR="./TRIVY_DIR"
+
 # Trivy FS scan avec redirection vers un fichier JSON dans le répertoire des rapports
 echo -e "${YELLOW}Exécution du scan Trivy sur le répertoire racine du projet ${NC}"
-trivy fs ./ --format json --output "$REPORT_DIR/trivy_scan_report.json"
+
+cat $REPORT_DIR/trivy_scan_report.json
+echo -e "${CYAN}Pour l'image docker trivy analyse.${NC}"
+cat $REPORT_DIR/trivy_docker_image.json
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Le scan FS du repertoire racine a rencontré une erreur.${NC}"
@@ -43,9 +50,6 @@ if [ $? -ne 0 ]; then
     echo -e "${RED}Le rapport Trivy n'a pas été généré correctement.${NC}"
     exit 1
 fi
-#usermod -aG www-data gitlab-runner
-#chmod 775 /var/www/report/
-mv report.html /var/www/report/
 
 jq '[.Results[] | select(.Vulnerabilities != null) | .Vulnerabilities[].Severity] | group_by(.) | map({(.[0]): length}) | add' $REPORT_DIR/trivy_scan_report.json > $REPORT_DIR/Vulnerabilities.json
 jq '[.Results[] | select(.Secrets != null) | .Secrets[].Severity] | group_by(.) | map({(.[0]): length}) | add' $REPORT_DIR/trivy_scan_report.json > $REPORT_DIR/Secrets.json
@@ -101,3 +105,4 @@ if [ "$Total_Medium_Severities" -gt 4 ]; then
    colors "RED" "Trivy scan result : $Total_Medium_Severities gravités de type MEDIUM.${NC}"
    colors "CYAN" "Veuillez consulter le rapport de vulnérabilités $lien"
    exit 1
+fi
