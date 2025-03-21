@@ -1,23 +1,26 @@
 version: '3.3'
-
+networks:
+  net_api:
+    external: true
 services:
   redis:
     image: redis:latest
-    container_name: redis-secure
+    container_name: REDIS-SECURE
     ports:
      - "6379:6379"  # Expose Redis seulement si nécessaire
     networks:
-      - redis
+      net_api:
+        ipv4_address: 172.28.0.2
     volumes:
-      - ./redis-data:/data  
-      - ./redis.conf:/usr/local/etc/redis/redis.conf  
-      - ./certs:/certs  
-      - /etc/localtime:/etc/localtime:ro 
+      - ./redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+      - ./certs:/certs
+      - /etc/localtime:/etc/localtime:ro
       - ./redis-log:/var/log/redis
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD} 
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     command: >
-      redis-server /usr/local/etc/redis/redis.conf 
+      redis-server /usr/local/etc/redis/redis.conf
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 30s
@@ -26,26 +29,6 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "15m"  
-        max-file: "1"     
+        max-size: "15m"
+        max-file: "1"
     tty: true
-  redisinsight:
-    image: redislabs/redisinsight:latest
-    container_name: REDIS-WEB
-    ports:
-    - "5540:5540"  # RedisInsight web interface
-    environment:
-    - REDIS_HOST=redis
-    - REDIS_PASSWORD=${REDIS_PASSWORD}
-    networks:
-      - redis
-     
-    depends_on:
-    - redis
-    volumes:
-    - ./Redis/redisinsight_data:/root/.redisinsight
-    restart: always
-
-networks:
-  redis:
-    driver: bridge
