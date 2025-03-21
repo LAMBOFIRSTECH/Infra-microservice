@@ -1,4 +1,3 @@
-#!/bin/bash
 colors() {
     RED="\033[0;31m"
     GREEN="\033[0;32m"
@@ -8,7 +7,7 @@ colors() {
     printf "${!1}${2} ${NC}\n"
 }
 
-export VAULT_ADDR=$VAULT_ADDR # L'adresse de Vault à utiliser dans les scripts .hcl
+export VAULT_ADDR=$VAULT_ADDR
 export VAULT_SKIP_VERIFY='true'
 
 # Vérifier si Vault est initialisé
@@ -23,8 +22,8 @@ if [ "$INITIALIZED" != "true" ]; then
     rootToken=$(grep "Initial Root Token: " generated_keys.txt | cut -c21-)
 
     # Sauvegarder le token root dans un fichier sécurisé
-    echo $rootToken >token.txt
-    chmod 600 token.txt # Nécessaire pour restreint les accès. Les services devront utiliser AppRole pour r,w dans Vault
+    echo $rootToken > /tmp/token.txt
+    chmod 600 /tmp/token.txt # Nécessaire pour restreint les accès. Les microservices  d'api devront utiliser AppRole pour r,w dans Vault
 
     # Sauvegarder les clés d'unsealing dans un fichier sécurisé
     for key in $keyArray; do
@@ -51,8 +50,8 @@ else
     #Récupérer le token root et le sauvegarder dans un fichier sécurisé
 
     rootToken=$(grep "Initial Root Token: " generated_keys.txt | cut -c21-)
-    echo $rootToken >token.txt
-    chmod 600 token.txt
+    echo $rootToken > /tmp/token.txt
+    chmod 600 /tmp/token.txt
     # Exporter le token root et se connecter
     export VAULT_TOKEN=$rootToken
 
