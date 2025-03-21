@@ -8,7 +8,7 @@ colors() {
     NC="\033[0m" # Réinitialisation
     printf "${!1}${2} ${NC}\n"
 }
-rootToken=$(cat token.txt)
+rootToken=$(cat /tmp/token.txt)
 vault login $rootToken # C'est le token principal qui permet d'avoir tous les accès et effectuer toutes opérations sur Vault
 
 # Activee l'authentification approle
@@ -78,18 +78,7 @@ else
     echo "Authentification réussie"
 fi
 
-# Chaine de connection à RabbitMQ
-vault kv put kv-v2/secret/rabbit-connection rabbitMqConnectionString='admin:password$1@172.17.0.2:5672'
+# Chaine de connexion à RabbitMQ
+vault kv put kv-v2/secret/rabbit-connection rabbitMqConnectionString='admin:password$1@172.28.0.5:5672'
 # Vérifier que la valeur a bien été ajoutée et stockée dans Vault
 vault kv get kv-v2/secret/rabbit-connection
-
-# Mot de passe ldap
-vault kv put kv-v2/secret/ldap-pass ldapPassword=$(printf "password\\$1")
-vault kv get kv-v2/secret/ldap-pass
-
-if [[ $? -ne 0 ]]; then
-    colors "RED" "Échec lors de l'authentification vault."
-    exit 1
-fi
-
-colors "GREEN" "Terminer avec succès."
