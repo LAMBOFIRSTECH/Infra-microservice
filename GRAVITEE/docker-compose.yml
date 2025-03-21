@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   mongodb:
     image: mongo:${MONGODB_VERSION:-6.0.8}
@@ -44,8 +42,9 @@ services:
       - gravitee_ratelimit_mongodb_uri=mongodb://mongodb:27017/gravitee
       - gravitee_reporters_elasticsearch_endpoints_0=http://elasticsearch:9200
     networks:
-      - net_api
-      - storage_gravitee
+      net_api:
+        ipv4_address: 172.28.0.17
+      storage_gravitee:
 
   management_api:
     image: graviteeio/apim-management-api:${APIM_VERSION:-4}
@@ -60,8 +59,9 @@ services:
       - gravitee_management_mongodb_uri=mongodb://mongodb:27017/gravitee
       - gravitee_analytics_elasticsearch_endpoints_0=http://elasticsearch:9200
     networks:
-      - storage_gravitee  # 🔄 Accès à la BD
-      - frontend_gravitee  # 🔄 Pour communication avec UI
+      storage_gravitee:  # 🔄 Accès à la BD
+      net_api:
+        ipv4_address: 172.28.0.18 # 🔄 Pour communication avec UI
 
   management_ui:
     image: graviteeio/apim-management-ui:${APIM_VERSION:-4}
@@ -74,15 +74,14 @@ services:
     environment:
       - MGMT_API_URL=http://management_api:8083/management/organizations/DEFAULT/environments/DEFAULT/
     networks:
-      - frontend_gravitee  # 🎨 UI ne voit que l’API Management
+      net_api:
+        ipv4_address: 172.28.0.19  # 🎨 UI ne voit que l’API Management
 
 volumes:
   data-mongo:
   data-elasticsearch:
 
 networks:
-  frontend_gravitee:
-    name: frontend_gravitee  # 🌐 UI & API Management (pas de backend ici)
   storage_gravitee:
     name: storage_gravitee  # 📦 Réseau sécurisé pour BD & Gateway
   net_api:
