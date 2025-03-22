@@ -2,13 +2,13 @@ volumes:
   pg_data:
 
 networks:
-  keycloak_network:
+  network:
     driver: bridge
 
 services:
   postgres:
     image: postgres:17
-    container_name: KEYCLOAK-POSTGRES-DB
+    container_name: KEYCLOAK-POSTGRES-SONARQUBE-DB
     restart: always
     environment:
       POSTGRES_DB: keycloak
@@ -17,9 +17,9 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
-      - keycloak_network
+      - network
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.1.4
     container_name: KEYCLOAK
     restart: always
     command: ["start-dev"]
@@ -36,10 +36,10 @@ services:
     depends_on:
       - postgres
     networks:
-      - keycloak_network
+      - network
   openldap:
     image: ldapauditlog:latest
-    container_name: OPEN-LDAP
+    container_name: ANNUAIRE-OPEN-LDAP
     environment:
       LDAP_BASE_DN: ${LDAP_BASE_DN}
       LDAP_ORGANISATION: ${LDAP_ORGANIZATION}  
@@ -48,16 +48,16 @@ services:
       LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
       LDAP_TLS: "false"
     volumes:
-      - ./ldap/ldap.log:/var/log/ldap-audit.log
+      - ./openldap/ldap.log:/var/log/ldap-audit.log
     ports:
       - "389:389"                
     restart: unless-stopped
     networks:
-      - keycloak_network
+      - network
 
   phpldapadmin:
-    image: osixia/phpldapadmin:latest
-    container_name: PHP-LDAP-ADMIN
+    image: osixia/phpldapadmin:stable
+    container_name: PHP-OPENLDAP-IHM
     environment:
       PHPLDAPADMIN_LDAP_HOSTS: openldap
       PHPLDAPADMIN_HTTPS: "false"
@@ -67,5 +67,5 @@ services:
     depends_on:
       - openldap
     networks:
-      - keycloak_network
+      - network
 

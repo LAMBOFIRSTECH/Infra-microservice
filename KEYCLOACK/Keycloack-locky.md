@@ -1,0 +1,1 @@
+# Taches infrastructure à faire entre Keycloack et Locky pour la gestion des logs
