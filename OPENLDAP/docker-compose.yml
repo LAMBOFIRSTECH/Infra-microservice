@@ -1,0 +1,31 @@
+version: '3.3'
+
+services:
+  openldap:
+    image: ldapauditlog:latest
+    container_name: OPEN-LDAP
+    environment:
+      LDAP_BASE_DN: ${LDAP_BASE_DN}
+      LDAP_ORGANISATION: ${LDAP_ORGANIZATION}  
+      LDAP_DOMAIN: ${LDAP_DOMAIN}
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
+      LDAP_TLS: "false"
+    volumes:
+      # - ./ldap/auditlog.ldif:/tmp/auditlog.ldif
+      - ./ldap/ldap.log:/var/log/ldap-audit.log
+    ports:
+      - "389:389"                
+    restart: unless-stopped
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:latest
+    container_name: PHP-LDAP-ADMIN
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: openldap
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "7081:80"
+    restart: unless-stopped
+    depends_on:
+      - openldap

@@ -1,0 +1,92 @@
+services:
+  mongodb:
+    image: mongo:${MONGODB_VERSION:-6.0.8}
+    container_name: MONGODB
+    restart: always
+    volumes:
+      - data-mongo:/data/db
+    networks:
+      - storage_gravitee 
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION:-8.8.1}
+    container_name: ELASTICSEARCH
+    restart: always
+    volumes:
+      - data-elasticsearch:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - cluster.name=elasticsearch
+      - xpack.security.enabled=false # passer à true en prod
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile: 65536
+    networks:
+      - storage_gravitee
+
+  gateway:
+    image: graviteeio/apim-gateway:${APIM_VERSION:-4}
+    container_name: GRAVITEE-GATEWAY
+    restart: always
+    ports:
+      - "9082:8082"
+    depends_on:
+      - mongodb
+      - elasticsearch
+    environment:
+      - gravitee_management_mongodb_uri=mongodb://mongodb:27017/gravitee
+      - gravitee_ratelimit_mongodb_uri=mongodb://mongodb:27017/gravitee
+      - gravitee_reporters_elasticsearch_endpoints_0=http://elasticsearch:9200
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.17
+      storage_gravitee:
+
+  management_api:
+    image: graviteeio/apim-management-api:${APIM_VERSION:-4}
+    container_name: GRAVITEE-MANAGEMENT-API
+    restart: always
+    ports:
+      - "9083:8083"
+    depends_on:
+      - mongodb
+      - elasticsearch
+    environment:
+      - gravitee_management_mongodb_uri=mongodb://mongodb:27017/gravitee
+      - gravitee_analytics_elasticsearch_endpoints_0=http://elasticsearch:9200
+    volumes:
+      - ./config:/config
+    networks:
+      storage_gravitee:  # 🔄 Accès à la BD
+      net_api:
+        ipv4_address: 172.28.0.18 # 🔄 Pour communication avec UI
+
+  management_ui:
+    image: graviteeio/apim-management-ui:${APIM_VERSION:-4}
+    container_name: GRAVITEE-MANAGEMENT-UI
+    restart: always
+    ports:
+      - "9084:8080"
+    depends_on:
+      - management_api
+    environment:
+      - MGMT_API_URL=https://develop.lamboft.it/gravitee-management-api/management/organizations/DEFAULT/environments/DEFAULT/
+      - UI_PATH_PREFIX=/gravitee-ui
+    command: "sh -c \"sed -i 's|<base href=\"/\">|<base href=\"/gravitee-ui/\">|' /usr/share/nginx/html/index.html\""
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.19  # 🎨 UI ne voit que l’API Management
+
+volumes:
+  data-mongo:
+  data-elasticsearch:
+
+networks:
+  storage_gravitee:
+    name: storage_gravitee  # 📦 Réseau sécurisé pour BD & Gateway
+  net_api:
+    external: true  # 🔒 Réseau privé entre backend et Gateway

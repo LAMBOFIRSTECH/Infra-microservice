@@ -1,0 +1,5 @@
+# Ignorer les fichiers d'environnement locaux
+.env
+# Ignorer les fichiers de tests
+*.test
+*.spec

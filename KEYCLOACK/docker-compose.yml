@@ -1,0 +1,71 @@
+volumes:
+  pg_data:
+
+networks:
+  keycloak_network:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: KEYCLOAK-POSTGRES-DB
+    restart: always
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - keycloak_network
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: KEYCLOAK
+    restart: always
+    command: ["start-dev"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KC_HOSTNAME: localhost
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "7088:8080"
+    depends_on:
+      - postgres
+    networks:
+      - keycloak_network
+  openldap:
+    image: ldapauditlog:latest
+    container_name: OPEN-LDAP
+    environment:
+      LDAP_BASE_DN: ${LDAP_BASE_DN}
+      LDAP_ORGANISATION: ${LDAP_ORGANIZATION}  
+      LDAP_DOMAIN: ${LDAP_DOMAIN}
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
+      LDAP_TLS: "false"
+    volumes:
+      - ./ldap/ldap.log:/var/log/ldap-audit.log
+    ports:
+      - "389:389"                
+    restart: unless-stopped
+    networks:
+      - keycloak_network
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:latest
+    container_name: PHP-LDAP-ADMIN
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: openldap
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "7081:80"
+    restart: unless-stopped
+    depends_on:
+      - openldap
+    networks:
+      - keycloak_network
+
