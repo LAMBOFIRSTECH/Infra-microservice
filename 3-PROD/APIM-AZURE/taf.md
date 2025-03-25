@@ -1,1 +1,0 @@
-Configurer l'APIM pod kubernetes
