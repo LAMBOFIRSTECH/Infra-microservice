@@ -4,35 +4,52 @@ volumes:
 networks:
   network:
     driver: bridge
-
 services:
   postgres:
-    image: postgres:17
-    container_name: KEYCLOAK-POSTGRES-SONARQUBE-DB
+    image: postgres:custom
+    container_name: KEYCLOAK-POSTGRES-DB
     restart: always
-    environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak
     volumes:
-      - pg_data:/var/lib/postgresql/data
+        - pg_data:/var/lib/postgresql/data
+        - ./.config.d/postgresql.conf:/etc/postgresql/postgresql.conf
+        - ./.config.d/pg_hba.conf:/etc/postgresql/config.d/pg_hba.conf
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+      - "-c"
+      - "hba_file=/etc/postgresql/config.d/pg_hba.conf"
     networks:
       - network
   keycloak:
     image: quay.io/keycloak/keycloak:26.1.4
     container_name: KEYCLOAK
     restart: always
-    command: ["start-dev"]
+    volumes:
+      - /etc/ssl/certs/localhost.crt:/etc/ssl/certs/localhost.crt  
+      - /etc/ssl/private/localhost.key:/etc/ssl/private/localhost.key
+    command: [
+      "start-dev",
+      "--https-certificate-file=/etc/ssl/certs/localhost.crt",
+      "--https-certificate-key-file=/etc/ssl/private/localhost.key",
+      "--https-port=8443", # quand on est en local
+      "--hostname-strict=false" # quand on est en local
+      # "--hostname-strict=true" # quand on est en prod
+      # "--hostname=localhost" # quand on est en local
+      # "--hostname=keycloak.example.com" # quand on est en prod
+      # "--proxy=edge" # quand on est en local
+      # "--proxy=passthrough" # quand on est en prod
+      ]
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: keycloak
-      KC_HOSTNAME: localhost
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
+      KC_DB_USERNAME: keycloak_service
+      KC_DB_PASSWORD: Art437810 #${POSTGRES_PASSWORD:-4WXUms893U6j4GE&Hvk3S*hqcqebFgo!vZi} # htpasswd de apache
+      # KC_HOSTNAME: localhost # l'enviornnement
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     ports:
-      - "7088:8080"
+      - "8443:8443"
     depends_on:
       - postgres
     networks:
@@ -68,4 +85,3 @@ services:
       - openldap
     networks:
       - network
-
