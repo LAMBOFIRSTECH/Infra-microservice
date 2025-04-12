@@ -31,4 +31,4 @@ Legend:
 
 ### 🛠 Usage
 ```bash
-docker run -d --name postgres-secure -e POSTGRES_PASSWORD=secret postgres:17-no-vuln-alpine3.21
+docker run -d --name postgres-secure -e POSTGRES_PASSWORD=secret lambops/postgres:17-no-vuln-alpine3.21
