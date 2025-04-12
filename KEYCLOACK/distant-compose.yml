@@ -3,6 +3,10 @@ volumes:
 networks:
   net_api:
     external: true
+<<<<<<< HEAD:KEYCLOACK/docker-compose.yml
+=======
+
+>>>>>>> 035a9f3 (infra docker):KEYCLOACK/distant-compose.yml
 services:
   postgres:
     image: postgres:customize
@@ -36,15 +40,27 @@ services:
       "--https-certificate-file=/etc/x509/https/tls.crt",
       "--https-certificate-key-file=/etc/x509/https/tls.key",
       "--http-enabled=false",
+<<<<<<< HEAD:KEYCLOACK/docker-compose.yml
       "--hostname-strict=false"
+=======
+      "--hostname-strict=false" 
+>>>>>>> 035a9f3 (infra docker):KEYCLOACK/distant-compose.yml
       ]
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
       KC_DB_USERNAME: keycloak_service
+<<<<<<< HEAD:KEYCLOACK/docker-compose.yml
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+=======
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD} 
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    ports:
+      - "7443:7443"
+>>>>>>> 035a9f3 (infra docker):KEYCLOACK/distant-compose.yml
     depends_on:
       - postgres
     networks:
@@ -63,7 +79,11 @@ services:
     volumes:
       - ./openldap/ldap.log:/var/log/ldap-audit.log
     ports:
+<<<<<<< HEAD:KEYCLOACK/docker-compose.yml
       - "664:664"                
+=======
+      - "636:636"                
+>>>>>>> 035a9f3 (infra docker):KEYCLOACK/distant-compose.yml
     restart: unless-stopped
     networks:
       net_api:
@@ -74,10 +94,18 @@ services:
     container_name: PHP-OPENLDAP-IHM
     environment:
       PHPLDAPADMIN_LDAP_HOSTS: openldap
+<<<<<<< HEAD:KEYCLOACK/docker-compose.yml
       PHPLDAPADMIN_HTTPS: "true"
+=======
+      PHPLDAPADMIN_HTTPS: "false"
+>>>>>>> 035a9f3 (infra docker):KEYCLOACK/distant-compose.yml
     restart: unless-stopped
     depends_on:
       - openldap
     networks:
       net_api:
+<<<<<<< HEAD:KEYCLOACK/docker-compose.yml
         ipv4_address: 172.28.0.30
+=======
+        ipv4_address: 172.28.0.30
+>>>>>>> 035a9f3 (infra docker):KEYCLOACK/distant-compose.yml
