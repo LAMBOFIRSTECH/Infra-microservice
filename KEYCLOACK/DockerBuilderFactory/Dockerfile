@@ -19,8 +19,6 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/gosu
 FROM postgres@sha256:0ae695e3d11c7cc82cbed8f3e506233f18cdd40e3fc7622893f6a4d0772a5a09
 
 LABEL maintainer="lamboartur94@gmail.com"
-LABEL org.opencontainers.image.source="https://github.com/LAMBOFIRSTECH/Infra-microservice/tree/main/KEYCLOACK"
-LABEL org.opencontainers.image.created="2025-04-11T14:30:00Z"
 
 # Copier gosu compilé
 COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
