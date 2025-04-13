@@ -1,11 +1,12 @@
 volumes:
   pg_data:
+
 networks:
-  net_api:
-    external: true
+  network:
+    driver: bridge
 services:
   postgres:
-    image: postgres:customize
+    image: lambops/postgres:custom_db
     container_name: KEYCLOAK-POSTGRES-DB
     restart: always
     volumes:
@@ -19,56 +20,63 @@ services:
       - "-c"
       - "hba_file=/etc/postgresql/config.d/pg_hba.conf"
     networks:
-      net_api:
-        ipv4_address: 172.28.0.33
+      - network
   keycloak:
-    image: quay.io/keycloak/keycloak:26.1.4
+    image: lambops/keyclaok:26.2.1-no-vuln-alpine3.21 
     container_name: KEYCLOAK
     restart: always
     volumes:
-      - ./Certs/localhost.crt:/etc/x509/https/tls.crt
-      - ./Certs/localhost.key:/etc/x509/https/tls.key
+      - ./Certs/localhost.crt:/opt/keycloak/certs/tls.crt:ro
+      - ./Certs/localhost.key:/opt/keycloak/certs/tls.key:ro
     healthcheck:
      test: ["CMD", "curl", "-k", "-f", "https://localhost:7443/health/ready"]
     command: [
+      "/opt/keycloak/bin/kc.sh", 
       "start",
-      "--https-port=7443",
-      "--https-certificate-file=/etc/x509/https/tls.crt",
-      "--https-certificate-key-file=/etc/x509/https/tls.key",
+      "--https-certificate-file=/opt/keycloak/certs/tls.crt",
+      "--https-certificate-key-file=/opt/keycloak/certs/tls.key",
       "--http-enabled=false",
+      "--hostname-strict=false" # quand on est en local
+      # "--hostname-strict=true" # quand on est en prod
+      # "--hostname=localhost" # quand on est en local
+      # "--hostname=keycloak.example.com" # quand on est en prod
+      # "--proxy=edge" # quand on est en local
+      # "--proxy=passthrough" # quand on est en prod
       ]
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
       KC_DB_USERNAME: keycloak_service
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD} 
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      # KC_HOSTNAME: localhost # l'enviornnement
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     ports:
-      - "7443:7443"
+      - "7443:8443"
     depends_on:
       - postgres
     networks:
-      net_api:
-        ipv4_address: 172.28.0.32
+      - network
   openldap:
-    image: ldapauditlog:custom
-    container_name: ANNUAIRE-OPEN-LDAP
+    image: lamboft/annuaireldap:customize
+    container_name: ANNUAIRELDAP
     environment:
       LDAP_BASE_DN: ${LDAP_BASE_DN}
-      LDAP_ORGANISATION: ${LDAP_ORGANIZATION}  
+      LDAP_ORGANISATION: ${LDAP_ORGANIZATION}
       LDAP_DOMAIN: ${LDAP_DOMAIN}
       LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
       LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
       LDAP_TLS: "true"
     volumes:
       - ./openldap/ldap.log:/var/log/ldap-audit.log
+      # - /etc/ssl/certs/localhost.crt:/container/service/slapd/assets/certs/localhost.crt
+      # - /etc/ssl/private/localhost.key:/container/service/slapd/assets/certs/localhost.key
     ports:
-      - "664:664"                
+      - "389:389"
+      - "636:636"
     restart: unless-stopped
     networks:
-      net_api:
-        ipv4_address: 172.28.0.31
+      - network
 
   phpldapadmin:
     image: osixia/phpldapadmin:stable
@@ -76,10 +84,10 @@ services:
     environment:
       PHPLDAPADMIN_LDAP_HOSTS: openldap
       PHPLDAPADMIN_HTTPS: "true"
-
+    ports:
+      - "7081:80"
     restart: unless-stopped
     depends_on:
       - openldap
     networks:
-      net_api:
-        ipv4_address: 172.28.0.30
+      - network

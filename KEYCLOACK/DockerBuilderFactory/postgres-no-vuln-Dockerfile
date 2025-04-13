@@ -1,0 +1,29 @@
+# Étape 1 : build de gosu statique sans vulnérabilités
+FROM golang:alpine3.21 AS builder
+
+LABEL stage="builder"
+
+# Désactiver CGO pour un binaire statique
+ENV CGO_ENABLED=0
+
+RUN apk add --no-cache git
+
+# Cloner Gosu depuis le dépôt officiel
+RUN git clone https://github.com/tianon/gosu.git /src/gosu
+
+WORKDIR /src/gosu
+# Compiler gosu avec CGO désactivé pour un binaire statique
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/gosu
+
+# Étape 2 : image finale PostgreSQL sans vulnérabilités
+FROM postgres@sha256:0ae695e3d11c7cc82cbed8f3e506233f18cdd40e3fc7622893f6a4d0772a5a09
+
+LABEL maintainer="lamboartur94@gmail.com"
+LABEL org.opencontainers.image.source="https://github.com/LAMBOFIRSTECH/Infra-microservice/tree/main/KEYCLOACK/DockerBuilderFactory"
+LABEL org.opencontainers.image.created="2025-04-11T14:30:00Z"
+
+# Copier gosu compilé
+COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
+
+RUN chmod +x /usr/local/bin/gosu
+RUN apk update && apk upgrade --no-cache

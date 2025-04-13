@@ -1,0 +1,90 @@
+volumes:
+  pg_data:
+
+networks:
+  net_api:
+    external: true
+
+services:
+  postgres:
+    image: lambops/postgres:stable_secure
+    container_name: KEYCLOAK-POSTGRES-DB
+    restart: always
+    volumes:
+        - pg_data:/var/lib/postgresql/data
+        - ./config.d/postgresql.conf:/etc/postgresql/postgresql.conf
+        - ./config.d/pg_hba.conf:/etc/postgresql/config.d/pg_hba.conf
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+      - "-c"
+      - "hba_file=/etc/postgresql/config.d/pg_hba.conf"
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.33
+
+  keycloak:
+    image: lambops/keycloak:stable_secure
+    container_name: KEYCLOAK
+    restart: always
+    volumes:
+      - ./Certs/localhost.crt:/opt/keycloak/certs/tls.crt:ro
+      - ./Certs/localhost.key:/opt/keycloak/certs/tls.key:ro
+    healthcheck:
+     test: ["CMD", "curl", "-k", "-f", "https://localhost:8443/health/ready"]
+    command: [
+      "/opt/keycloak/bin/kc.sh", 
+      "start",
+      "--https-port=8443",
+      "--https-certificate-file=/opt/keycloak/certs/tls.crt",
+      "--https-certificate-key-file=/opt/keycloak/certs/tls.key",
+      "--http-enabled=false",
+      "--hostname-strict=false",
+      "--proxy-headers=forwarded",
+      "--optimized"
+      ]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
+      KC_DB_USERNAME: keycloak_service
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD} 
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    depends_on:
+      - postgres
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.32
+
+  # openldap:
+  #   image: ldapauditlog:custom
+  #   container_name: ANNUAIRE-OPEN-LDAP
+  #   environment:
+  #     LDAP_BASE_DN: ${LDAP_BASE_DN}
+  #     LDAP_ORGANISATION: ${LDAP_ORGANIZATION}  
+  #     LDAP_DOMAIN: ${LDAP_DOMAIN}
+  #     LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+  #     LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
+  #     LDAP_TLS: "true"
+  #   volumes:
+  #     - ./openldap/ldap.log:/var/log/ldap-audit.log
+  #   ports:
+  #     - "636:636"
+  #   restart: unless-stopped
+  #   networks:
+  #     net_api:
+  #       ipv4_address: 172.28.0.31
+
+  # phpldapadmin:
+  #   image: osixia/phpldapadmin:stable
+  #   container_name: PHP-OPENLDAP-IHM
+  #   environment:
+  #     PHPLDAPADMIN_LDAP_HOSTS: openldap
+  #     PHPLDAPADMIN_HTTPS: "false"
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - openldap
+  #   networks:
+  #     net_api:
+  #       ipv4_address: 172.28.0.30
