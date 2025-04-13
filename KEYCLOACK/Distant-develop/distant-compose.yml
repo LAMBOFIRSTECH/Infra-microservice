@@ -32,7 +32,7 @@ services:
       - ./Certs/localhost.crt:/opt/keycloak/certs/tls.crt:ro
       - ./Certs/localhost.key:/opt/keycloak/certs/tls.key:ro
     healthcheck:
-     test: ["CMD", "curl", "-k", "-f", "https://localhost:8443/health/ready"]
+     test: ["CMD", "curl", "-k", "-f", "https://172.28.0.32:8443/health/ready"]
     command: [
       "/opt/keycloak/bin/kc.sh", 
       "start",
