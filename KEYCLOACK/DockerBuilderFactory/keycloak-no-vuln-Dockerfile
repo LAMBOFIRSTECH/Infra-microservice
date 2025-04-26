@@ -1,4 +1,3 @@
-# GOSU nous permettra d'exécuter le conteneur en tant qu'utilisateur non root (en l'occurrence keycloak)
 # Étape 1 : build de gosu statique sans vulnérabilités
 FROM golang:alpine3.21 AS builder
 LABEL stage="builder"
@@ -38,7 +37,7 @@ LABEL maintainer="lamboartur94@gmail.com" \
       org.opencontainers.image.architecture="amd64" \
       org.opencontainers.image.version="v2" \
       org.opencontainers.image.created="2025-04-13" \
-      org.opencontainers.image.description="Keycloak 26.2.0 with static gosu and no vulnerabilities" \
+      org.opencontainers.image.description="Keycloak 26.2.1 with static gosu and no vulnerabilities" \
       org.opencontainers.image.vendor="LAMBOFIRSTECH"
 
-CMD ["gosu", "keycloak", "/opt/keycloak/bin/kc.sh", "start", "--https-port=8443", "--https-certificate-file=/opt/keycloak/certs/tls.crt", "--https-certificate-key-file=/opt/keycloak/certs/tls.key", "--hostname-strict=false"]
+CMD ["/keycloak.sh"]

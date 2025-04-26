@@ -1,0 +1,68 @@
+FROM alpine:3.21
+
+LABEL maintainer="lamboartur94@gmail.com" \
+      org.opencontainers.image.source="https://github.com/osixia/docker-phpLDAPadmin" \
+      org.opencontainers.image.source="https://github.com/LAMBOFIRSTECH/Infra-microservice/tree/main/OPENLDAP/DockerBuilderFactory" \
+      org.opencontainers.image.os="linux" \
+      org.opencontainers.image.architecture="amd64" \
+      org.opencontainers.image.created="2025-04-23" \
+      org.opencontainers.image.description="phpLDAPadmin secure no vulnerabilities" \
+      org.opencontainers.image.vendor="LAMBOFIRSTECH" \
+      org.opencontainers.image.version="v0.8.0"
+
+# Installer Apache, PHP et modules nécessaires
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+    apache2 \
+    apache2-ssl \
+    php \
+    php-apache2 \
+    php-ldap \
+    php-session \
+    php-openssl \
+    php-json \
+    php-mbstring \
+    curl \
+    bash \
+    openldap-clients \
+    ca-certificates \
+    tzdata
+
+# Copier les fichiers de configuration personnalisés
+COPY httpd.conf /etc/apache2/httpd.conf 
+COPY ssl.conf /etc/apache2/conf.d/ssl.conf
+
+# Créer le répertoire de logs Apache et donner les permissions nécessaires
+RUN mkdir -p /var/log/apache2 && \
+    chown -R apache:apache /var/log/apache2 && \
+    mkdir -p /var/www/logs && \
+    chown -R apache:apache /var/www/logs
+
+# Désactiver le module PHP par défaut de php83-module.conf
+RUN rm -f /etc/apache2/conf.d/php83-module.conf
+
+# Activer le module SSL et charger PHP
+RUN sed -i 's/#LoadModule ssl_module/LoadModule ssl_module/' /etc/apache2/httpd.conf && \
+    sed -i 's|#Include conf.d/ssl.conf|Include conf.d/ssl.conf|' /etc/apache2/httpd.conf && \
+    sed -i 's/#LoadModule php_module modules\/libphp.so/LoadModule php_module modules\/libphp.so/' /etc/apache2/httpd.conf && \
+    # Supprimer la ligne redondante si elle existe
+    sed -i '/LoadModule php_module modules\/libphp.so/d' /etc/apache2/httpd.conf
+
+# Télécharger phpLDAPadmin depuis GitHub
+WORKDIR /tmp
+RUN curl -L https://github.com/osixia/docker-phpLDAPadmin/archive/refs/tags/v0.8.0.tar.gz -o phpldapadmin.tar.gz && \
+    mkdir -p /var/www/localhost/htdocs/phpldapadmin && \
+    tar -xzf phpldapadmin.tar.gz --strip-components=1 -C /var/www/localhost/htdocs/phpldapadmin && \
+    rm -rf phpldapadmin.tar.gz
+
+# Attribuer les droits appropriés sur le répertoire
+RUN chown -R apache:apache /var/www/localhost/htdocs
+
+# Exposer les ports HTTP et HTTPS
+EXPOSE 80 443
+
+# Lancer Apache en tant qu'utilisateur apache
+USER apache
+
+# Lancer Apache en mode foreground
+CMD ["/usr/sbin/httpd", "-D", "FOREGROUND"]

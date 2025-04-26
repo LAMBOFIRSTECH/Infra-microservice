@@ -1,6 +1,7 @@
 volumes:
   pg_data:
 
+
 networks:
   network:
     driver: bridge
@@ -10,9 +11,9 @@ services:
     container_name: KEYCLOAK-POSTGRES-DB
     restart: always
     volumes:
-        - pg_data:/var/lib/postgresql/data
-        - ./.config.d/postgresql.conf:/etc/postgresql/postgresql.conf
-        - ./.config.d/pg_hba.conf:/etc/postgresql/config.d/pg_hba.conf
+      - pg_data:/var/lib/postgresql/data
+      - ./.config.d/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./.config.d/pg_hba.conf:/etc/postgresql/config.d/pg_hba.conf
     command:
       - "postgres"
       - "-c"
@@ -22,33 +23,20 @@ services:
     networks:
       - network
   keycloak:
-    image: lambops/keyclaok:26.2.1-no-vuln-alpine3.21 
+    image: lambops/keyclaok:26.2.1-no-vuln-alpine3.21
     container_name: KEYCLOAK
     restart: always
     volumes:
       - ./Certs/localhost.crt:/opt/keycloak/certs/tls.crt:ro
       - ./Certs/localhost.key:/opt/keycloak/certs/tls.key:ro
     healthcheck:
-     test: ["CMD", "curl", "-k", "-f", "https://localhost:7443/health/ready"]
-    command: [
-      "/opt/keycloak/bin/kc.sh", 
-      "start",
-      "--https-certificate-file=/opt/keycloak/certs/tls.crt",
-      "--https-certificate-key-file=/opt/keycloak/certs/tls.key",
-      "--http-enabled=false",
-      "--hostname-strict=false" # quand on est en local
-      # "--hostname-strict=true" # quand on est en prod
-      # "--hostname=localhost" # quand on est en local
-      # "--hostname=keycloak.example.com" # quand on est en prod
-      # "--proxy=edge" # quand on est en local
-      # "--proxy=passthrough" # quand on est en prod
-      ]
+      test: [ "CMD", "curl", "-k", "-f", "https://localhost:7443/realms/master" ]
+    command: [ "/opt/keycloak/bin/kc.sh", "start", "--https-certificate-file=/opt/keycloak/certs/tls.crt", "--https-certificate-key-file=/opt/keycloak/certs/tls.key", "--http-enabled=false", "--hostname-strict=false" ]
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
       KC_DB_USERNAME: keycloak_service
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-      # KC_HOSTNAME: localhost # l'enviornnement
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     ports:
@@ -58,34 +46,40 @@ services:
     networks:
       - network
   openldap:
-    image: lamboft/annuaireldap:customize
-    container_name: ANNUAIRELDAP
+    image: lambops/openldap:2.6.7-no-vuln-alpine3.21
+    container_name: ANNUAIRE-LDAP
     environment:
-      LDAP_BASE_DN: ${LDAP_BASE_DN}
       LDAP_ORGANISATION: ${LDAP_ORGANIZATION}
-      LDAP_DOMAIN: ${LDAP_DOMAIN}
-      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
       LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
       LDAP_TLS: "true"
     volumes:
       - ./openldap/ldap.log:/var/log/ldap-audit.log
-      # - /etc/ssl/certs/localhost.crt:/container/service/slapd/assets/certs/localhost.crt
-      # - /etc/ssl/private/localhost.key:/container/service/slapd/assets/certs/localhost.key
+      - ./Certs/localhost.crt:/container/service/slapd/assets/certs/localhost.crt
+      - ./Certs/localhost.key:/container/service/slapd/assets/certs/localhost.key
+      - ./openldap/tls.ldif:/usr/local/etc/openldap/slapd.d/tls.ldif
     ports:
-      - "389:389"
       - "636:636"
+      - "389:389"
     restart: unless-stopped
     networks:
       - network
-
   phpldapadmin:
-    image: osixia/phpldapadmin:stable
-    container_name: PHP-OPENLDAP-IHM
+    image: lambops/phpadminldap:secure
+    container_name: LDAP-ACCOUNTMANAGER
+    user: root
     environment:
-      PHPLDAPADMIN_LDAP_HOSTS: openldap
-      PHPLDAPADMIN_HTTPS: "true"
+      #LAM_SKIP_PRECONFIGURE: "true"
+      LAM_LDAP_PORT: 636
+      LAM_LDAP_TLS: true
+      LAM_LDAP_HOST: openldap
+      APACHE_DOCUMENT_ROOT: /var/www/localhost/htdocs
+      PHP_IDE_CONFIG: serverName=localhost
+    volumes:
+      - ./Certs/localhost.crt:/etc/ssl/certs/localhost.crt:ro
+      - ./Certs/localhost.key:/etc/ssl/private/localhost.key:ro
     ports:
       - "7081:80"
+      - "8443:443"
     restart: unless-stopped
     depends_on:
       - openldap
