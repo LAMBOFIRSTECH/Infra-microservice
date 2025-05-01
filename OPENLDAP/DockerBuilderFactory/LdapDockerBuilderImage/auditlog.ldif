@@ -1,0 +1,4 @@
+dn: olcOverlay={0}auditlog,olcDatabase={1}mdb,cn=config
+changetype: modify
+add: olcAuditlogFile
+olcAuditlogFile: /var/log/ldap-audit.log

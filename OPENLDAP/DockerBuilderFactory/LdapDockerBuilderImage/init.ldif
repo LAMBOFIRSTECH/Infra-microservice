@@ -1,0 +1,11 @@
+dn: dc=lamboft,dc=it
+objectClass: top
+objectClass: domain
+dc: lamboft
+
+dn: cn=admin,dc=lamboft,dc=it
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: admin
+description: LDAP administrator
+userPassword: {SSHA}lp8N9JuXqV0ufCDO8jOM5xPc1oOEKJce

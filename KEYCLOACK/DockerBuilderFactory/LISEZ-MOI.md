@@ -35,9 +35,9 @@ Legend:
 docker run -d --name postgres-secure -e POSTGRES_PASSWORD=secret lambops/postgres:17-no-vuln-alpine3.21 
 ```
 # 2-Construction de l'image keycloak
-## lambops/keyclaok:26.2.1-no-vuln-alpine3.21 
+## lambops/keyclaok:secure
 
-Image Docker custom KEYCLOAK 26.2.1 basée sur Alpine 3.21 avec `gosu` compilé statiquement à partir de Go 1.22.4.
+Image Docker custom KEYCLOAK 26.2.2 basée sur Alpine 3.21 avec `gosu` compilé statiquement à partir de Go 1.22.4.
 
 
 ### ✅ Objectifs
@@ -49,7 +49,7 @@ Image Docker custom KEYCLOAK 26.2.1 basée sur Alpine 3.21 avec `gosu` compilé 
 ### 🔐 Sécurité
 - Base golang:alpine3.21
 - Alpine 3.21.3 (digest)
-- keycloak 26.2.0 (depuis la source  https://github.com/keycloak/keycloak/releases/download/26.2.0/keycloak-26.2.0.tar.gz)
+- keycloak 26.2.2 (depuis la source  https://github.com/keycloak/keycloak/releases/download/26.2.2/keycloak-26.2.2.tar.gz)
 - `gosu` compilé sans vulnérabilité connues (Trivy OK)
 - user gosu : keycloak 
 
@@ -63,6 +63,5 @@ Report Summary
 ┌──────────────────────────────────────────────────────────────────────────────────┬──────────┬─────────────────┬─────────┐
 │                                      Target                                      │   Type   │ Vulnerabilities │ Secrets │
 ├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ lambops/keycloak:26.2.1 (alpine 3.21.3)                                          │  alpine  │        0        │    -    │
+│ lambops/keycloak:26.2.2 (alpine 3.21.3)                                          │  alpine  │        0        │    -    │
 ├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-

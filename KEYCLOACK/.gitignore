@@ -1,1 +1,19 @@
 .env
+
+*.conf
+# Ignorer les fichiers SQL
+*.sql
+
+# Ignorer les fichiers PEM et CSR (certificats et clés)
+*.pem
+*.csr
+
+# Ignorer le répertoire Certs
+Certs/
+
+# Ignorer les fichiers de logs
+*.log
+
+# Ignorer tout autre fichier sensible
+*.bak
+*.tmp

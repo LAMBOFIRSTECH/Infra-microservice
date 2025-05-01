@@ -7,13 +7,13 @@ networks:
 
 services:
   postgres:
-    image: lambops/postgres:stable_secure
+    image: lambops/postgres:custom_db
     container_name: KEYCLOAK-POSTGRES-DB
     restart: always
     volumes:
-        - pg_data:/var/lib/postgresql/data
-        - ./config.d/postgresql.conf:/etc/postgresql/postgresql.conf
-        - ./config.d/pg_hba.conf:/etc/postgresql/config.d/pg_hba.conf
+      - pg_data:/var/lib/postgresql/data
+      - ./.config.d/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./.config.d/pg_hba.conf:/etc/postgresql/config.d/pg_hba.conf
     command:
       - "postgres"
       - "-c"
@@ -25,66 +25,66 @@ services:
         ipv4_address: 172.28.0.33
 
   keycloak:
-    image: lambops/keycloak:stable_secure
+    image: lambops/keycloak:secure
     container_name: KEYCLOAK
     restart: always
     volumes:
-      - ./Certs/localhost.crt:/opt/keycloak/certs/tls.crt:ro
-      - ./Certs/localhost.key:/opt/keycloak/certs/tls.key:ro
+      - ./Certs/fullchain.pem:/opt/keycloak/certs/fullchain.pem:ro
+      - ./Certs/privkey.pem:/opt/keycloak/certs/privkey.pem:ro
+      - ./keycloak.conf:/opt/keycloak/conf/keycloak.conf
     healthcheck:
-     test: ["CMD", "curl", "-k", "-f", "https://172.28.0.32:8443/health/ready"]
-    command: [
-      "/opt/keycloak/bin/kc.sh", 
-      "start",
-      "--https-port=8443",
-      "--https-certificate-file=/opt/keycloak/certs/tls.crt",
-      "--https-certificate-key-file=/opt/keycloak/certs/tls.key",
-      "--http-enabled=false",
-      "--hostname-strict=false",
-      "--proxy-headers=forwarded",
-      "--optimized"
-      ]
+      test: [ "CMD", "curl", "-k", "-f", "https://develop.lamboft.it/keycloak/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
-      KC_DB_USERNAME: keycloak_service
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD} 
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    expose:
+      - "8443"
     depends_on:
       - postgres
     networks:
       net_api:
         ipv4_address: 172.28.0.32
 
-  # openldap:
-  #   image: ldapauditlog:custom
-  #   container_name: ANNUAIRE-OPEN-LDAP
-  #   environment:
-  #     LDAP_BASE_DN: ${LDAP_BASE_DN}
-  #     LDAP_ORGANISATION: ${LDAP_ORGANIZATION}  
-  #     LDAP_DOMAIN: ${LDAP_DOMAIN}
-  #     LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
-  #     LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
-  #     LDAP_TLS: "true"
-  #   volumes:
-  #     - ./openldap/ldap.log:/var/log/ldap-audit.log
-  #   ports:
-  #     - "636:636"
-  #   restart: unless-stopped
-  #   networks:
-  #     net_api:
-  #       ipv4_address: 172.28.0.31
+  openldap:
+    image: lambops/openldap:secure
+    container_name: ANNUAIRE-LDAP
+    environment:
+      LDAP_ORGANISATION: ${LDAP_ORGANIZATION}
+      LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
+      LDAP_TLS: "true"
+    volumes:
+      - ./Certs/fullchain.pem:/container/service/slapd/assets/certs/fullchain.pem:ro
+      - ./Certs/privkey.pem:/container/service/slapd/assets/certs/privkey.pem:ro
+    restart: unless-stopped
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.31
 
-  # phpldapadmin:
-  #   image: osixia/phpldapadmin:stable
-  #   container_name: PHP-OPENLDAP-IHM
-  #   environment:
-  #     PHPLDAPADMIN_LDAP_HOSTS: openldap
-  #     PHPLDAPADMIN_HTTPS: "false"
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - openldap
-  #   networks:
-  #     net_api:
-  #       ipv4_address: 172.28.0.30
+  phpldapadmin:
+    image: lambops/phpadminldap:secure
+    container_name: LDAP-ACCOUNTMANAGER
+    user: root
+    environment:
+      #LAM_SKIP_PRECONFIGURE: "true"
+      LDAP_PORT: 389
+      LDAP_TLS: false ##
+      LDAP_HOST: openldap
+      APACHE_DOCUMENT_ROOT: /var/www/localhost/htdocs
+      PHP_IDE_CONFIG: ServerName develop.lamboft.it
+      PHPLDAPADMIN_TRUST_PROXY_SSL: true
+      PHPLDAPADMIN_HTTPS: false ##
+    volumes:
+      - ./Certs/fullchain.pem:/var/www/localhost/htdocs/doc/certs/fullchain.pem:ro
+      - ./Certs/privkey.pem:/var/www/localhost/htdocs/doc/certs/privkey.pem:ro
+      - ./Provisionning/ssl.conf:/etc/apache2/sites-available/ssl.conf
+      - ./Provisionning/httpd.conf:/etc/apache2/httpd.conf
+      - ./Provisionning/config.php:/var/www/localhost/htdocs/config/config.php
+    restart: unless-stopped
+    depends_on:
+      - openldap
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.30

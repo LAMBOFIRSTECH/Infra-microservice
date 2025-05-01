@@ -31,7 +31,17 @@ services:
       - ./Certs/localhost.key:/opt/keycloak/certs/tls.key:ro
     healthcheck:
       test: [ "CMD", "curl", "-k", "-f", "https://localhost:7443/realms/master" ]
-    command: [ "/opt/keycloak/bin/kc.sh", "start", "--https-certificate-file=/opt/keycloak/certs/tls.crt", "--https-certificate-key-file=/opt/keycloak/certs/tls.key", "--http-enabled=false", "--hostname-strict=false" ]
+    command: [ 
+      "/opt/keycloak/bin/kc.sh",
+      "start",
+      "--https-certificate-file=/opt/keycloak/certs/tls.crt",
+      "--https-certificate-key-file=/opt/keycloak/certs/tls.key",
+      "--http-enabled=false",
+      "--hostname-strict=false",
+      "--log-console-level=warn",
+      "--log-file-level=info",
+      "--log=console,file"
+      ]
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
@@ -39,6 +49,8 @@ services:
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_LOG_FILE_LEVEL: DEBUG
+      KC_LOG_CONSOLE_LEVEL: WARN
     ports:
       - "7443:8443"
     depends_on:
@@ -46,17 +58,15 @@ services:
     networks:
       - network
   openldap:
-    image: lambops/openldap:2.6.7-no-vuln-alpine3.21
+    image: lambops/openldap:secure
     container_name: ANNUAIRE-LDAP
     environment:
       LDAP_ORGANISATION: ${LDAP_ORGANIZATION}
       LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
       LDAP_TLS: "true"
     volumes:
-      - ./openldap/ldap.log:/var/log/ldap-audit.log
       - ./Certs/localhost.crt:/container/service/slapd/assets/certs/localhost.crt
       - ./Certs/localhost.key:/container/service/slapd/assets/certs/localhost.key
-      - ./openldap/tls.ldif:/usr/local/etc/openldap/slapd.d/tls.ldif
     ports:
       - "636:636"
       - "389:389"
@@ -69,17 +79,16 @@ services:
     user: root
     environment:
       #LAM_SKIP_PRECONFIGURE: "true"
-      LAM_LDAP_PORT: 636
-      LAM_LDAP_TLS: true
-      LAM_LDAP_HOST: openldap
+      LDAP_PORT: 389
+      LDAP_TLS: true
+      LDAP_HOST: openldap
       APACHE_DOCUMENT_ROOT: /var/www/localhost/htdocs
       PHP_IDE_CONFIG: serverName=localhost
     volumes:
       - ./Certs/localhost.crt:/etc/ssl/certs/localhost.crt:ro
       - ./Certs/localhost.key:/etc/ssl/private/localhost.key:ro
     ports:
-      - "7081:80"
-      - "8443:443"
+      - "6443:443"
     restart: unless-stopped
     depends_on:
       - openldap
