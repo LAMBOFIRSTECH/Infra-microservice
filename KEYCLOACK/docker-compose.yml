@@ -10,6 +10,11 @@ services:
     image: lambops/postgres:custom_db
     container_name: KEYCLOAK-POSTGRES-DB
     restart: always
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "keycloak_db", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./.config.d/postgresql.conf:/etc/postgresql/postgresql.conf
@@ -25,12 +30,12 @@ services:
   keycloak:
     image: lambops/keyclaok:26.2.1-no-vuln-alpine3.21
     container_name: KEYCLOAK
-    restart: always
+    restart: unless-stopped
     volumes:
       - ./Certs/localhost.crt:/opt/keycloak/certs/tls.crt:ro
       - ./Certs/localhost.key:/opt/keycloak/certs/tls.key:ro
     healthcheck:
-      test: [ "CMD", "curl", "-k", "-f", "https://localhost:7443/realms/master" ]
+      test: [ "CMD", "curl", "-k", "-f", "https://localhost:9000/health/live" ]
     command: [ 
       "/opt/keycloak/bin/kc.sh",
       "start",
@@ -49,6 +54,7 @@ services:
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_HEALTH_ENABLED: true
       KC_LOG_FILE_LEVEL: DEBUG
       KC_LOG_CONSOLE_LEVEL: WARN
     ports:
@@ -77,6 +83,11 @@ services:
     image: lambops/phpadminldap:secure
     container_name: LDAP-ACCOUNTMANAGER
     user: root
+    healthcheck:
+      test: ["CMD", "supervisorctl", "status", "apache2", "php8-fpm"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
       #LAM_SKIP_PRECONFIGURE: "true"
       LDAP_PORT: 389

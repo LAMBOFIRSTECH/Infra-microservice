@@ -1,5 +1,7 @@
+
 volumes:
   pg_data:
+  data:
 
 networks:
   net_api:
@@ -7,9 +9,14 @@ networks:
 
 services:
   postgres:
-    image: lambops/postgres:custom_db
+    image: lambops/postgres:secure
     container_name: KEYCLOAK-POSTGRES-DB
-    restart: always
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "keycloak_db", "-h", "172.28.0.33"]
+      interval: 30s
+      timeout: 10s
+      retries: 5 
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./.config.d/postgresql.conf:/etc/postgresql/postgresql.conf
@@ -27,19 +34,21 @@ services:
   keycloak:
     image: lambops/keycloak:secure
     container_name: KEYCLOAK
-    restart: always
+    restart: on-failure:5  # Redémarrage limité à 5 tentatives en cas d'échec
     volumes:
       - ./Certs/fullchain.pem:/opt/keycloak/certs/fullchain.pem:ro
       - ./Certs/privkey.pem:/opt/keycloak/certs/privkey.pem:ro
       - ./keycloak.conf:/opt/keycloak/conf/keycloak.conf
     healthcheck:
-      test: [ "CMD", "curl", "-k", "-f", "https://develop.lamboft.it/keycloak/health" ]
+      test: [ "CMD", "curl", "-k", "-f", "https://172.28.0.32:9000/cloak/health/live" ]
       interval: 30s
       timeout: 10s
       retries: 3
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KC_DB_SCHEMA: keycloak_schema
+      KC_HTTP_RELATIVE_PATH: /cloak 
     expose:
       - "8443"
     depends_on:
@@ -51,6 +60,14 @@ services:
   openldap:
     image: lambops/openldap:secure
     container_name: ANNUAIRE-LDAP
+    restart: on-failure:5
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD","supervisorctl", "status" ,"slapd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
       LDAP_ORGANISATION: ${LDAP_ORGANIZATION}
       LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
@@ -58,7 +75,6 @@ services:
     volumes:
       - ./Certs/fullchain.pem:/container/service/slapd/assets/certs/fullchain.pem:ro
       - ./Certs/privkey.pem:/container/service/slapd/assets/certs/privkey.pem:ro
-    restart: unless-stopped
     networks:
       net_api:
         ipv4_address: 172.28.0.31
@@ -67,6 +83,12 @@ services:
     image: lambops/phpadminldap:secure
     container_name: LDAP-ACCOUNTMANAGER
     user: root
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "supervisorctl", "status", "apache2", "php8-fpm"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
       #LAM_SKIP_PRECONFIGURE: "true"
       LDAP_PORT: 389
@@ -82,7 +104,6 @@ services:
       - ./Provisionning/ssl.conf:/etc/apache2/sites-available/ssl.conf
       - ./Provisionning/httpd.conf:/etc/apache2/httpd.conf
       - ./Provisionning/config.php:/var/www/localhost/htdocs/config/config.php
-    restart: unless-stopped
     depends_on:
       - openldap
     networks:
