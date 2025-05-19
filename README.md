@@ -1,2 +1,2 @@
 
-![Schéma auth](./healthcheck_ldap_keycloak_postgres_phpadmin.png)
+![Schéma auth](./healthcheck_status_global.png)
