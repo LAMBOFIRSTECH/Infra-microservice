@@ -1,17 +1,19 @@
+
 volumes:
   pg_data:
-
+  data:
 
 networks:
-  network:
-    driver: bridge
+  net_api:
+    external: true
+
 services:
   postgres:
-    image: lambops/postgres:custom_db
-    container_name: KEYCLOAK-POSTGRES-DB
-    restart: always
+    image: lambops/postgres:secure
+    container_name: KEYCLOAK_POSTGRES-DB
+    restart: on-failure:5 
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "keycloak_db", "-h", "localhost"]
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "keycloak_db", "-h", "172.28.0.33"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -26,82 +28,85 @@ services:
       - "-c"
       - "hba_file=/etc/postgresql/config.d/pg_hba.conf"
     networks:
-      - network
+      net_api:
+        ipv4_address: 172.28.0.33
+
   keycloak:
-    image: lambops/keyclaok:26.2.1-no-vuln-alpine3.21
+    image: lambops/keycloak:secure
     container_name: KEYCLOAK
-    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    restart: on-failure:5
     volumes:
-      - ./Certs/localhost.crt:/opt/keycloak/certs/tls.crt:ro
-      - ./Certs/localhost.key:/opt/keycloak/certs/tls.key:ro
+      - ./Certs/fullchain.pem:/opt/keycloak/certs/fullchain.pem:ro
+      - ./Certs/privkey.pem:/opt/keycloak/certs/privkey.pem:ro
+      - ./keycloak.conf:/opt/keycloak/conf/keycloak.conf
     healthcheck:
-      test: [ "CMD", "curl", "-k", "-f", "https://localhost:9000/health/live" ]
-    command: [ 
-      "/opt/keycloak/bin/kc.sh",
-      "start",
-      "--https-certificate-file=/opt/keycloak/certs/tls.crt",
-      "--https-certificate-key-file=/opt/keycloak/certs/tls.key",
-      "--http-enabled=false",
-      "--hostname-strict=false",
-      "--log-console-level=warn",
-      "--log-file-level=info",
-      "--log=console,file"
-      ]
+      test: [ "CMD", "curl", "-k", "-f", "https://172.28.0.32:9000/cloak/health/live" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
-      KC_DB_USERNAME: keycloak_service
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KEYCLOAK_HEALTH_ENABLED: true
-      KC_LOG_FILE_LEVEL: DEBUG
-      KC_LOG_CONSOLE_LEVEL: WARN
-    ports:
-      - "7443:8443"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KC_DB_SCHEMA: keycloak_schema
+      KC_HTTP_RELATIVE_PATH: /cloak
+    expose:
+      - "8443"
     depends_on:
       - postgres
     networks:
-      - network
+      net_api:
+        ipv4_address: 172.28.0.32
+       
   openldap:
     image: lambops/openldap:secure
-    container_name: ANNUAIRE-LDAP
+    container_name: LDAP-ANNUAIRE
+    restart: on-failure:5
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD","supervisorctl", "status" ,"slapd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
       LDAP_ORGANISATION: ${LDAP_ORGANIZATION}
       LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
       LDAP_TLS: "true"
     volumes:
-      - ./Certs/localhost.crt:/container/service/slapd/assets/certs/localhost.crt
-      - ./Certs/localhost.key:/container/service/slapd/assets/certs/localhost.key
-    ports:
-      - "636:636"
-      - "389:389"
-    restart: unless-stopped
+      - ./Certs/fullchain.pem:/container/service/slapd/assets/certs/fullchain.pem:ro
+      - ./Certs/privkey.pem:/container/service/slapd/assets/certs/privkey.pem:ro
     networks:
-      - network
+      net_api:
+        ipv4_address: 172.28.0.31
+
   phpldapadmin:
     image: lambops/phpadminldap:secure
-    container_name: LDAP-ACCOUNTMANAGER
+    container_name: LDAP-INTERFACE
     user: root
+    restart: on-failure:5 
     healthcheck:
       test: ["CMD", "supervisorctl", "status", "apache2", "php8-fpm"]
       interval: 30s
       timeout: 10s
       retries: 3
     environment:
-      #LAM_SKIP_PRECONFIGURE: "true"
-      LDAP_PORT: 389
-      LDAP_TLS: true
+      LDAP_PORT: 636
+      LDAP_TLS: True
       LDAP_HOST: openldap
       APACHE_DOCUMENT_ROOT: /var/www/localhost/htdocs
-      PHP_IDE_CONFIG: serverName=localhost
+      PHP_IDE_CONFIG: ServerName develop.lamboft.it
+      PHPLDAPADMIN_TRUST_PROXY_SSL: true
+      PHPLDAPADMIN_HTTPS: false
     volumes:
-      - ./Certs/localhost.crt:/etc/ssl/certs/localhost.crt:ro
-      - ./Certs/localhost.key:/etc/ssl/private/localhost.key:ro
-    ports:
-      - "6443:443"
-    restart: unless-stopped
+      - ./Certs/fullchain.pem:/var/www/localhost/htdocs/doc/certs/fullchain.pem:ro
+      - ./Certs/privkey.pem:/var/www/localhost/htdocs/doc/certs/privkey.pem:ro
+      - ./Provisionning/ssl.conf:/etc/apache2/sites-available/ssl.conf
+      - ./Provisionning/httpd.conf:/etc/apache2/httpd.conf
+      - ./Provisionning/config.php:/var/www/localhost/htdocs/config/config.php
     depends_on:
       - openldap
     networks:
-      - network
+      net_api:
+        ipv4_address: 172.28.0.30

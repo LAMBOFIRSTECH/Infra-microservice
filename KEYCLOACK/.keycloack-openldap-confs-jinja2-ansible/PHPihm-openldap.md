@@ -1,1 +1,0 @@
-# Taches infrastructure à faire entre PHP-IHM et l'annuaire OpenLdap

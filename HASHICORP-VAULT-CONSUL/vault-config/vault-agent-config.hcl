@@ -3,7 +3,7 @@ auto_auth {
   method {
     type="approle" 
     config = {
-      role_id_file_path   = "/vault/data/role-id-file"  # Chemin vers le fichier contenant le role_id
+      role_id_file_path   = "/vault/data/role-id-file"
       secret_id_file_path = "/vault/data/secret-id-file"
       remove_secret_id_file_after_reading = false
     }
@@ -11,11 +11,11 @@ auto_auth {
 
   sink "file" {
     config = {
-      path = "/tmp/token" # C'est ici que le Token de approle sera stocké
+      path = "/tmp/token"
     }
   }
 }
 
 vault {
-  address = "http://172.19.0.6:8200"
+  address = "https://vault.infra.docker:8200"
 }

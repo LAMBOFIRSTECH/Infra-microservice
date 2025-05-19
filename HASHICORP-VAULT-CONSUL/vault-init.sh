@@ -9,7 +9,7 @@ colors() {
 }
 
 export VAULT_ADDR=$VAULT_ADDR # L'adresse de Vault à utiliser dans les scripts .hcl
-export VAULT_SKIP_VERIFY='true'
+export VAULT_CACERT="/opt/vault/tls/vault-ca.crt"
 
 # Vérifier si Vault est initialisé
 INITIALIZED=$(vault status | grep "Initialized" | awk '{print $2}')
@@ -36,10 +36,14 @@ if [ "$INITIALIZED" != "true" ]; then
     # Déverrouiller Vault
     for key in $keyArray; do
         vault operator unseal $key
+        if [ $? -ne 0 ]; then
+            echo "Erreur lors du unseal avec la clé : $key"
+            exit 1
+        fi
     done
 
     # Vérifier que Vault est bien déverrouillé (unsealed)
-    if [ "$(vault status | grep "Sealed" | awk '{print $2}')" == "true" ]; then  # Récupérer la commande dans /dev/null pour éviter d'afficher le token dans les logs
+    if [ "$(vault status | grep "Sealed" | awk '{print $2}')" == "true" ]; then # Récupérer la commande dans /dev/null pour éviter d'afficher le token dans les logs
         echo -e "${CYAN}1- Vault est scellé. Veuillez vérifier les unseal Keys. ${NC}"
         exit 1
     else

@@ -1,18 +1,27 @@
 # Configuration générale du serveur Vault
-ui = true  # Active l'interface web de Vault
+ui = true
+disable_mlock = true
+cluster_addr = "https://vault.infra.docker:8201"
+api_addr = "https://vault.infra.docker:8200"
 
 # Serveur Vault
 listener "tcp" {
-  address = "0.0.0.0:8200"  # Permet à Vault d'écouter sur toutes les interfaces réseau
+  address = "0.0.0.0:8200"
   cluster_address = "0.0.0.0:8201"
-  tls_disable = 1  # Désactive TLS (à activer en production)
+  tls_cert_file = "/opt/vault/tls/backend.crt"
+  tls_key_file  = "/opt/vault/tls/backend.key"
+  tls_client_ca_file = "/opt/vault/tls/vault-ca.crt"
 }
 
 # Backend de stockage Vault (Consul)
 storage "consul" {
-  address = "CONSUL-VAULT-STORAGE:8500"
-  scheme  = "http"
-  path    = "vault/"
+  address = "consul.infra.docker:8501"
+  scheme  = "https"
+  path    = "vault/data"
+  node_id = "consul-node"
+  tls_ca_file   = "/opt/vault/tls/vault-ca.crt"
+  tls_cert_file = "/opt/vault/tls/backend.crt"
+  tls_key_file  = "/opt/vault/tls/backend.key"
 }
 
 # Logs
@@ -23,8 +32,14 @@ auth "approle" {
   path = "auth/approle/login"
 }
 
-disable_mlock = false
-
 # Sécurisation des tokens
-default_lease_ttl = "168h"  # Durée par défaut des tokens (7 jours)
-max_lease_ttl = "720h"      # Durée maximale des tokens
+default_lease_ttl = "168h"
+max_lease_ttl = "720h"
+
+# Metriques
+# C'est un service à part chargé de gérer les métriques on va use prométheus ici
+#telemetry {
+#   statsite_address = "172.26.0.6:8125" 
+#   disable_hostname = true
+# }
+
