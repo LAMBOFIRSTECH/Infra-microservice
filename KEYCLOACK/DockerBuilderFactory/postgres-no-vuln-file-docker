@@ -6,7 +6,8 @@ LABEL stage="builder"
 # Désactiver CGO pour un binaire statique
 ENV CGO_ENABLED=0
 
-RUN apk add --no-cache git
+RUN apk add --no-cache git && \
+    rm -rf /var/cache/apk/*
 
 # Cloner Gosu depuis le dépôt officiel
 RUN git clone https://github.com/tianon/gosu.git /src/gosu
@@ -30,5 +31,5 @@ LABEL maintainer="lamboartur94@gmail.com" \
 # Copier gosu compilé
 COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
 
-RUN chmod +x /usr/local/bin/gosu
-RUN apk update && apk upgrade --no-cache
+RUN chmod +x /usr/local/bin/gosu && \
+    apk update && apk upgrade --no-cache

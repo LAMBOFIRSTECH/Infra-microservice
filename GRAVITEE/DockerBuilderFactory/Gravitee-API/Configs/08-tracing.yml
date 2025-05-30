@@ -1,0 +1,10 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Tracing :                                 ║
+# ║ - Enabled tracing for gravitee queries           ║
+# ║ - Enabled Jaeger                                 ║
+# ╚══════════════════════════════════════════════════╝
+tracing:
+  enabled: true
+  provider: jaeger
+  endpoint: http://jaeger:14268/api/traces
+  samplingRate: 1.0

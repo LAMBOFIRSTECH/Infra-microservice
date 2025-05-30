@@ -1,0 +1,65 @@
+# ╔══════════════════════════════════════════════════╗
+# ║# Envoy-proxy for backend                         ║
+# ║- golang:alpine3.21                               ║
+# ╚══════════════════════════════════════════════════╝
+
+# Étape 1 : build de gosu statique sans vulnérabilités
+FROM golang:alpine3.21 AS builder
+
+LABEL stage="builder"
+
+# Désactiver CGO pour un binaire statique
+ENV CGO_ENABLED=0
+
+RUN apk add --no-cache git && \
+    rm -rf /var/cache/apk/*
+# Cloner Gosu depuis le dépôt officiel
+RUN git clone https://github.com/tianon/gosu.git /src/gosu
+
+WORKDIR /src/gosu
+# Compiler gosu avec CGO désactivé pour un binaire statique
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/gosu
+
+# Étape 2 : image finale Envoy sans vulnérabilités
+FROM envoyproxy/envoy-alpine@sha256:c959cb1484133cd978079d2696b4d903ba489e794db80f0f36469cb5e93ba468
+
+RUN apk add --no-cache  curl shadow ca-certificates  && \
+    adduser -D -u 1000 -g 1000 envoy-proxy
+
+LABEL maintainer="lamboartur94@gmail.com" \
+    org.opencontainers.image.source="https://github.com/LAMBOFIRSTECH/Infra-microservice/tree/main/PROXY-SERVICES/DockerBuilderFactory" \
+    org.opencontainers.image.os="linux" \
+    org.opencontainers.image.architecture="amd64" \
+    org.opencontainers.image.version="v1" \
+    org.opencontainers.image.created="2025-04-26" \
+    org.opencontainers.image.title="Proxy pour les services backend" \
+    org.opencontainers.image.description="Envoy v1.34.1 with static gosu and no vulnerabilities" \
+    org.opencontainers.image.vendor="LAMBOFIRSTECH"
+
+ENV ENVOY_VERSION=1.33.3
+# Copier gosu compilé
+COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
+RUN chmod +x /usr/local/bin/gosu && \
+    mkdir -p /opt/envoy /opt/envoy/tls && \
+    groupadd ssl-cert && \
+    usermod -aG ssl-cert envoy-proxy && \
+    chown -R envoy-proxy: /opt/envoy
+
+WORKDIR /opt/envoy
+
+COPY Certs  /opt/envoy/tls
+COPY Certs/vault-ca.crt /usr/local/share/ca-certificates/vault-ca.crt
+COPY envoy.yaml /opt/envoy/envoy.yaml
+
+RUN apk update && apk upgrade --no-cache \
+    && chown -R envoy-proxy: /opt/envoy \
+    && chown -R envoy-proxy: /opt/envoy/envoy.yaml \
+    && chown -R envoy-proxy:ssl-cert /opt/envoy/tls \
+    && chmod 600 /opt/envoy/tls/backend.pem \
+    && update-ca-certificates \
+    && cp /usr/local/share/ca-certificates/vault-ca.crt /opt/envoy/tls/vault-ca.crt \
+    && chown -R envoy-proxy:ssl-cert /opt/envoy/tls/vault-ca.crt
+
+USER envoy-proxy
+
+CMD ["envoy", "-c", "/opt/envoy/envoy.yaml", "--log-level", "info"]

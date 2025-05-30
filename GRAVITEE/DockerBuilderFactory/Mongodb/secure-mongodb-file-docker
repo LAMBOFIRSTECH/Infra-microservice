@@ -1,0 +1,78 @@
+# ╔══════════════════════════════════════════════════╗
+# ║# MongoDb-Gravitee with no vulnerabilities        ║
+# ║- golang:alpine3.21                        ║
+# ╚══════════════════════════════════════════════════╝
+
+# Étape 1 : build de gosu statique sans vulnérabilités
+FROM golang:alpine3.21 AS builder
+
+LABEL stage="builder"
+
+# Désactiver CGO pour un binaire statique
+ENV CGO_ENABLED=0
+
+RUN apk add --no-cache git && \
+    rm -rf /var/cache/apk/*
+
+# Cloner Gosu depuis le dépôt officiel
+RUN git clone https://github.com/tianon/gosu.git /src/gosu
+
+WORKDIR /src/gosu
+# Compiler gosu avec CGO désactivé pour un binaire statique
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/gosu
+
+# Étape 2 : image finale MongoDb sans vulnérabilités
+FROM mvertes/alpine-mongo:4.0.6-1
+
+RUN  echo " " >  /etc/apk/repositories && \
+    echo 'http://dl-cdn.alpinelinux.org/alpine/v3.8/community' >> /etc/apk/repositories && \
+    echo 'http://dl-cdn.alpinelinux.org/alpine/v3.8/main' >> /etc/apk/repositories && \
+    apk update && apk upgrade --no-cache
+
+RUN apk add --no-cache  curl shadow ca-certificates && \
+    adduser -D -u 1000 -g 1000 S_mongo
+
+LABEL maintainer="lamboartur94@gmail.com" \
+    org.opencontainers.image.source="https://github.com/LAMBOFIRSTECH/Infra-microservice/tree/main/GRAVITEE/DockerBuilderFactory" \
+    org.opencontainers.image.os="linux" \
+    org.opencontainers.image.architecture="amd64" \
+    org.opencontainers.image.version="v2" \
+    org.opencontainers.image.created="2025-04-22" \
+    org.opencontainers.image.description="MongoDb 4.0.6-1 with static gosu and no vulnerabilities" \
+    org.opencontainers.image.vendor="LAMBOFIRSTECH"
+
+# Copier gosu compilé
+COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
+
+RUN chmod +x /usr/local/bin/gosu && \
+    mkdir -p /opt/mongo /opt/mongo/tls && \
+    groupadd ssl-cert && \
+    usermod -aG ssl-cert S_mongo
+
+WORKDIR /opt/mongo
+
+COPY Certs/backend.pem  /opt/mongo/tls/backend.pem
+COPY Certs/vault-ca.crt /usr/local/share/ca-certificates/vault-ca.crt
+COPY supervisord.conf /etc/supervisord.conf 
+COPY mongod.conf /etc/mongod.conf 
+COPY init-mongo.sh /opt/mongo/init-mongo.sh
+COPY healthcheck.sh /opt/mongo/mongo-healthcheck.sh
+COPY db.js /opt/mongo/db.js
+
+RUN apk update && apk upgrade --no-cache \
+    && apk add --no-cache supervisor \
+    && touch /run/supervisord.sock \
+    && chown -R S_mongo: /opt/mongo \
+    && chown -R S_mongo: /etc/mongod.conf \
+    && mkdir -p /var/log/supervisor /data/db \
+    && chown -R S_mongo: /var/log/mongodb /var/log/supervisor /run /data/db /usr/bin/mongod \
+    && chown -R S_mongo:ssl-cert /opt/mongo/tls \
+    && chmod 600 /opt/mongo/tls/backend.pem \
+    && chmod -R 755 /data/db /var/log/supervisor \
+    && update-ca-certificates \
+    && cp /usr/local/share/ca-certificates/vault-ca.crt /opt/mongo/tls/vault-ca.crt \
+    && chown -R S_mongo:ssl-cert /opt/mongo/tls/vault-ca.crt
+  
+# le port 28017 est nécessaire pour envoy comme proxy ou rp pour la bd mongo
+EXPOSE 27017 28017
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]

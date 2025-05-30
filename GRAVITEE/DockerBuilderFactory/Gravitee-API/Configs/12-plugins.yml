@@ -1,0 +1,7 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Plugins  :                                ║
+# ║ - Enabled plugins                                ║
+# ╚══════════════════════════════════════════════════╝
+plugins:
+  enabled: true
+  pluginFolder: /opt/gravitee-mgnt/plugins

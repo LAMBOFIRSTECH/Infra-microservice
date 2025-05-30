@@ -1,0 +1,9 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section export gravitee analytics  :              ║
+# ║ - Enabled                                        ║
+# ╚══════════════════════════════════════════════════╝
+analytics-export:
+  rabbitmq:
+    brokers:
+      - rabbitmq:9092
+    topic: gravitee-all-analytics

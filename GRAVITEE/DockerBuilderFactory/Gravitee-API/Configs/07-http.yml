@@ -1,0 +1,12 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Http server : for GRAVITEE-MANAGEMENT-UI  ║
+# ║ - Enabled gravitee api mangement to speak with UI║
+# ║ - Enabled TLS/SSL                                ║
+# ╚══════════════════════════════════════════════════╝
+http:
+  port: 8080
+  host: 0.0.0.0
+  sslEnabled: true
+  # sslKeystore:
+  #   path: /path/to/keystore.jks
+  #   password: changeit

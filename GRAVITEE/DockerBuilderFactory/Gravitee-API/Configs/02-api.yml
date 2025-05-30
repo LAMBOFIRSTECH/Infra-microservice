@@ -1,0 +1,14 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section API                                       ║
+# ║ - CORS activated                                 ║
+# ║ - Enabled SSL/TLS                                ║
+# ╚══════════════════════════════════════════════════╝
+api:
+  http:
+    port: 8082
+    host: 0.0.0.0
+  security:
+    enabled: true
+  cors:
+    allowedOrigins: "*"
+    allowedMethods: "GET,POST,PUT,DELETE"

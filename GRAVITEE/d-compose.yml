@@ -1,0 +1,120 @@
+volumes:
+  data-mongo:
+  shared-secret:
+    external: true
+
+networks:
+  storage_gravitee:
+    external: true  # 📦 Réseau sécurisé pour BD & Gateway
+  net_api:
+    external: true  
+  proxy-net:
+    external: true  # 🔒 Réseau privé entre net_api et storage_gravitee (utilise le proxy docker-nginx)
+### ----------------------------------------------------------------------------------
+services:
+  mongodb:
+    image: lambops/mongodb:secure
+    container_name: MONGODB
+    hostname: mongo.infra.docker
+    restart: always
+    healthcheck:
+      test: [ "CMD", "sh","/opt/mongo/mongo-healthcheck.sh" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    cap_add:
+      - SYS_ADMIN
+    tmpfs:
+      - /sys/fs/cgroup
+    volumes:
+      - type: bind
+        source: /sys/kernel/mm/transparent_hugepage
+        target: /sys/kernel/mm/transparent_hugepage
+        read_only: false
+      - ./data-mongo:/data/db
+      - ./Certs:/opt/mongo/tls
+      - ./Provisionning/init-mongo.sh:/opt/mongo/init-mongo.sh
+      - ./Provisionning/healthcheck.sh:/opt/mongo/mongo-healthcheck.sh
+      - ./Provisionning/db.js:/opt/mongo/db.js
+    expose:
+     - "27017"
+    extra_hosts:
+      - "mongo.infra.docker:172.19.0.3"
+      - "proxy.infra.docker:172.21.0.3"
+    environment:
+      - MONGO_ADMIN_PWD=${MONGO_ADMIN_PWD}
+    networks:
+      storage_gravitee:
+        ipv4_address: 172.19.0.3
+      proxy-net:
+### ----------------------------------------------------------------------------------
+  gravitee_api:
+    image: lambops/gravitee-management-api:secure
+    container_name: GRAVITEE-MANAGEMENT-API
+    hostname: gravitee-api.infra.docker
+    restart: always
+    healthcheck:
+      test: [ "CMD", "curl","-k","-s","https://gravitee-api.infra.docker:8083/_node/health?probes=management-api,management-repository"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    expose:
+      - "8083"
+    depends_on:
+      - mongodb
+    environment:
+      - gravitee_management_mongodb_uri=mongodb://gravitee_service:{{password}}@proxy.infra.docker:27018/gravitee_db?authSource=gravitee_db&authMechanism=SCRAM-SHA-256"
+      - gravitee_analytics_mongodb_uri=mongodb://gravitee_service:{{password}}@proxy.infra.docker:27018/gravitee_analytics?authSource=gravitee_analytics&authMechanism=SCRAM-SHA-256" # Créer cette base de données dans mongo
+      - ds.mongodb.dbname=gravitee_db
+      - ds.mongodb.host=mongo.infra.docker
+      - ds.mongodb.port=27017
+      - ds.mongodb.username=${MONGO_USERNAME}
+    volumes:
+      - ./config:/config
+      - ./Certs:/opt/gravitee-mgnt/tls
+      - ./Provisionning/init-gravitee.sh:/opt/gravitee-mgnt/conf/init-gravitee.sh 
+      - ./Provisionning/gravitee-config:/opt/gravitee-mgnt/config 
+      - shared-secret:/opt/shared
+    extra_hosts:
+      - "gravitee-api.infra.docker:172.28.0.18"
+      - "proxy.infra.docker:172.21.0.3"
+      - "mongo.infra.docker:172.19.0.3"
+    command: 
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.18 # 🔄 Pour communication avec UI   
+      proxy-net:
+### ----------------------------------------------------------------------------------
+  # gravitee_gateway:
+  #   image: graviteeio/apim-gateway:${APIM_VERSION:-4}
+  #   container_name: GRAVITEE-GATEWAY
+  #   hostname: gravitee-gateway.infra.docker
+  #   restart: always
+  #   ports:
+  #     - "9082:8082"
+  #   depends_on:
+  #     - mongodb
+  #   environment:
+  #     - gravitee_management_mongodb_uri=mongodb://mongodb:27017/gravitee
+  #     - gravitee_ratelimit_mongodb_uri=mongodb://mongodb:27017/gravitee
+  #   networks:
+  #     net_api:
+  #       ipv4_address: 172.28.0.17
+  #     storage_gravitee:
+### ----------------------------------------------------------------------------------
+  # gravitee_ui:
+  #   image: graviteeio/apim-management-ui:${APIM_VERSION:-4}
+  #   container_name: GRAVITEE-MANAGEMENT-UI
+  #   restart: always
+  #   ports:
+  #     - "9084:8080"
+  #   depends_on:
+  #     - management_api
+  #   environment:
+  #     - MGMT_API_URL=https://develop.lamboft.it/gravitee-management-api/management/organizations/DEFAULT/environments/DEFAULT/
+  #     - UI_PATH_PREFIX=/gravitee-ui
+  #   command: "sh -c \"sed -i 's|<base href=\"/\">|<base href=\"/gravitee-ui/\">|' /usr/share/nginx/html/index.html\""
+  #   networks:
+  #     net_api:
+  #       ipv4_address: 172.28.0.19  # 🎨 UI ne voit que l’API Management
+### ----------------------------------------------------------------------------------

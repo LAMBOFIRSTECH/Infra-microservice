@@ -1,0 +1,96 @@
+# ╔══════════════════════════════════════════════════╗
+# ║# consul hashicorp 1.20.6 with no vulnerabilities ║
+# ║- golang:1.24.2-alpine3.21                        ║
+# ╚══════════════════════════════════════════════════╝
+
+FROM golang@sha256:3077e12cda6debf8a9eba8eba0b6b4efe6f9c17295a18e3883cc5797d1688acb AS builder
+LABEL stage="builder"
+ENV CGO_ENABLED=0
+
+RUN apk add --no-cache git=2.47.2-r0 && \
+   git clone https://github.com/tianon/gosu.git /src/gosu
+
+WORKDIR /src/gosu
+# Compiler gosu avec CGO désactivé pour un binaire statique
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/gosu
+
+# Étape 2 : Image finale (Runtime) consul sans vulnérabilités
+FROM alpine@sha256:1c4eef651f65e2f7daee7ee785882ac164b02b78fb74503052a26dc061c90474
+
+# Installer les dépendances, créer l'utilisateur consul et préparer les répertoires
+RUN apk add --no-cache curl shadow ca-certificates && \
+    adduser -D -u 1000 -g 1000 consul
+
+# Copier le binaire gosu compilé
+COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
+RUN chmod +x /usr/local/bin/gosu
+
+LABEL maintainer="lamboartur94@gmail.com" \
+    org.opencontainers.image.source="https://github.com/LAMBOFIRSTECH/Infra-microservice/tree/main/HASHICORP-VAULT-CONSUL/DockerBuilderFactory" \
+    org.opencontainers.image.os="linux" \
+    org.opencontainers.image.architecture="amd64" \
+    org.opencontainers.image.version="v2" \
+    org.opencontainers.image.created="2025-04-15" \
+    org.opencontainers.image.description="consul hashicorp 1.20.6 with no vulnerabilities" \
+    org.opencontainers.image.vendor="LAMBOFIRSTECH"
+ENV VERSION=1.20.6
+
+ADD https://releases.hashicorp.com/consul/${VERSION}/consul_${VERSION}_linux_amd64.zip /tmp/
+ADD https://releases.hashicorp.com/consul/${VERSION}/consul_${VERSION}_SHA256SUMS      /tmp/
+ADD https://releases.hashicorp.com/consul/${VERSION}/consul_${VERSION}_SHA256SUMS.sig  /tmp/
+
+ENV GOVER=1.24.2
+RUN curl -sSL "https://go.dev/dl/go${GOVER}.linux-amd64.tar.gz" | tar -C /usr/local -xz
+ENV PATH="/usr/local/go/bin:$PATH"
+WORKDIR /tmp/
+
+COPY main.go /tmp/
+# Créer un répertoire pour le projet Go et initialiser le module
+RUN mkdir -p /tmp/go_consul && \
+    cp /tmp/main.go /tmp/go_consul/ && \
+    cd /tmp/go_consul && \
+    go mod init deps_vuln && \
+    # Ajouter les modules nécessaires et récupérer les dépendances
+    go get github.com/go-jose/go-jose/v3 && \
+    go get github.com/golang-jwt/jwt/v4 && \
+    go get golang.org/x/crypto/ssh && \
+    go mod tidy && \
+    # Exécuter le code Go pour tester les modules
+    go run /tmp/go_consul/main.go
+
+# Télécharger et installer Consul
+RUN apk --update add --virtual verify gpgme \
+    && gpg --keyserver keyserver.ubuntu.com --recv-key 0x72D7468F \
+    && gpg --verify /tmp/consul_${VERSION}_SHA256SUMS.sig \
+    && apk del verify \
+    && cat consul_${VERSION}_SHA256SUMS | grep linux_amd64 | sha256sum -c \
+    && unzip consul_${VERSION}_linux_amd64.zip \
+    && mv consul /usr/local/bin/ \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /consul
+
+RUN mkdir -p /opt/consul/tls && \
+    groupadd ssl-cert && usermod -aG ssl-cert consul && \
+    mkdir -p /usr/local/share/ca-certificates
+
+COPY Certs/backend.crt  /opt/consul/tls/backend.crt
+COPY Certs/backend.key  /opt/consul/tls/backend.key
+COPY Certs/vault-ca.crt /usr/local/share/ca-certificates/vault-ca.crt
+
+RUN chmod -R 755 /consul && \
+    chown -R consul:consul /consul && \
+    mkdir -p /consul/data && \
+    mkdir -p /consul/config && \
+    chown -R consul:consul /consul/data && \
+    chown -R consul:consul /consul/config && \
+    chown -R consul:ssl-cert /opt/consul/tls && \
+    chmod 600 /opt/consul/tls/backend.key && \
+    update-ca-certificates && \
+    cp /usr/local/share/ca-certificates/vault-ca.crt /opt/consul/tls/vault-ca.crt
+
+COPY consul-server-config.hcl /consul/config/consul-server-config.hcl
+
+USER consul
+# Expose TCP listener port
+EXPOSE 8500 8501

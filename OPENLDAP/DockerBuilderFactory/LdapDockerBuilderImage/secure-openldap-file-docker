@@ -1,0 +1,105 @@
+# ---------------------
+# Étape 1 : Builder gosu + OpenLDAP
+# ---------------------
+FROM golang:alpine AS builder
+
+ENV OPENLDAP_VERSION=2.6.7
+
+RUN apk add --no-cache \
+    build-base \
+    git \
+    libtool \
+    autoconf \
+    automake \
+    bash \
+    openssl-dev \
+    cyrus-sasl-dev \
+    util-linux-dev \
+    wget \
+    groff \
+    tar
+
+# Build gosu
+RUN git clone https://github.com/tianon/gosu.git /gosu
+WORKDIR /gosu
+RUN go build -ldflags="-s -w" -o /usr/local/bin/gosu
+
+# Build OpenLDAP
+WORKDIR /src
+RUN wget ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release/openldap-${OPENLDAP_VERSION}.tgz && \
+    tar -xzf openldap-${OPENLDAP_VERSION}.tgz && \
+    cd openldap-${OPENLDAP_VERSION} && \
+    ./configure \
+        --prefix=/usr/local \
+        --enable-slapd \
+        --enable-modules \
+        --enable-dynamic \
+        --enable-auditlog \
+        --enable-mdb \
+        --with-tls=openssl \
+        --with-cyrus-sasl \
+        --enable-ldap && \
+    make -j$(nproc) && \
+    make install
+
+# ---------------------
+# Étape 2 : Image finale
+# ---------------------
+FROM alpine@sha256:1c4eef651f65e2f7daee7ee785882ac164b02b78fb74503052a26dc061c90474
+
+LABEL maintainer="lamboartur94@gmail.com" \
+        org.opencontainers.image.source="https://github.com/LAMBOFIRSTECH/Infra-microservice/tree/main/KEYCLOACK/DockerBuilderFactory" \
+        org.opencontainers.image.os="linux" \
+        org.opencontainers.image.architecture="amd64" \
+        org.opencontainers.image.version="v1" \
+        org.opencontainers.image.created="2025-05-21" \
+        org.opencontainers.image.description="OpenLDAP stable_secure with static gosu and no vulnerabilities" \
+        org.opencontainers.image.vendor="LAMBOFIRSTECH"
+
+RUN adduser -D -s /sbin/nologin ldap
+
+RUN apk add --no-cache \
+    openssl \
+    libsasl \
+    libtool \
+    db \
+    nano \
+    util-linux \
+    libcap \
+    shadow \
+    coreutils \
+    supervisor
+
+# COPY binaries
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
+
+# Configuration init
+COPY init.ldif /usr/local/etc/openldap/init.ldif
+COPY auditlog.ldif /usr/local/etc/openldap/auditlog.ldif
+COPY supervisord.conf /etc/supervisord.conf
+COPY slapd.conf /usr/local/etc/openldap/slapd.conf
+COPY ldap.conf /usr/local/etc/openldap/lapd.conf
+COPY Certs/ /container/service/slapd/assets/certs/
+
+# Création des répertoires nécessaires
+RUN mkdir -p /var/run/slapd /var/lib/ldap /usr/local/etc/openldap/slapd.d /var/log && \
+    chown -R ldap:ldap /var/run/slapd /var/lib/ldap /usr/local/etc/openldap /var/log && \
+    chmod -R 700 /var/run/slapd /var/lib/ldap && \
+    groupadd ssl-cert && \
+    usermod -aG ssl-cert ldap && \
+    chown -R ldap:ssl-cert /container/service/slapd/assets/certs && \
+    chown ldap:ldap /usr/local/etc/openldap/slapd.conf && \
+    chown ldap:ldap /etc/supervisord.conf && \
+    touch /var/log/ldap-audit.log && \
+    chown ldap:ldap /var/log/ldap-audit.log && \
+    chmod 600 /var/log/ldap-audit.log
+    
+ENV SLAPD_DATA_DIR=/usr/local/etc/openldap/slapd.d
+ENV SLAPD_CONF_FILE=/usr/local/etc/openldap/init.ldif
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+EXPOSE 389 636
+
+WORKDIR /usr/local/etc/openldap
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]

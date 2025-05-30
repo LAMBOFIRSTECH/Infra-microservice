@@ -1,0 +1,198 @@
+############################################################################################################
+################################ Gravitee.IO Management API - Configuration ################################
+############################################################################################################
+
+############################################################################################
+# ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ 
+# ╔══════════════════════════════════════════════════════════════╗
+# ║ NB : Aucune modification ne doit etre faite dans gravitee.yml║
+# ║Pour chaque nouvelle directives, veuillez la rajouter dans le ║
+# ║sous fichier correspondant.                                   ║
+# ║                                                              ║
+# ║A chaque redémarrage du service `cat *.yml > gravitee.yml`    ║
+# ║               ⏳⏳                                          ║
+# ║Exemple :                                                     ╚═══════════════════════╗
+# ║Je souhaite changer le context path de l'api => 04-management-api.yml                 ║
+# ║Je souhaite utiliser elasticsearch pour l'indexation dans gravitee => 05-analytics.yml║
+# ╚══════════════════════════════════════════════════════════════════════════════════════╝
+# ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ 
+#############################################################################################
+# ╔══════════════════════════════════════════════════╗
+# ║Section Management : db connect                   ║
+# ║ - Authentification activated                     ║
+# ║ - Enabled SSL/TLS                                ║
+# ╚══════════════════════════════════════════════════╝
+management:
+  type: mongodb
+  mongodb:
+    dbname: ${ds.mongodb.dbname} 
+    host: ${ds.mongodb.host} 
+    port: ${ds.mongodb.port}
+    username: ${ds.mongodb.username}
+    password: ${ds.mongodb.password}
+    authSource: ${ds.mongodb.authenticationDatabase}
+    sslEnabled: true
+    sslInvalidHostNameAllowed: false
+    # truststore:
+    #   path: /path/to/truststore.jks
+    #   type: jks
+    #   password: changeit
+# ╔══════════════════════════════════════════════════╗
+# ║Section API                                       ║
+# ║ - CORS activated                                 ║
+# ║ - Enabled SSL/TLS                                ║
+# ╚══════════════════════════════════════════════════╝
+api:
+  http:
+    port: 8082
+    host: 0.0.0.0
+  security:
+    enabled: true
+  cors:
+    allowedOrigins: "*"
+    allowedMethods: "GET,POST,PUT,DELETE"
+# ╔══════════════════════════════════════════════════╗
+# ║Section Gateway :                                 ║
+# ║ - Distributed tracing  activated                 ║
+# ║                                                  ║
+# ╚══════════════════════════════════════════════════╝
+gateway:
+  http:
+    port: 8083
+    host: 0.0.0.0
+  proxy:
+    connectTimeout: 1000
+    socketTimeout: 30000
+  rateLimit:
+    enabled: true
+    defaultLimit: 1000
+  tracing:
+    enabled: true
+    provider: jaeger
+    endpoint: http://jaeger:14268/api/traces
+# ╔══════════════════════════════════════════════════╗
+# ║Section Management API :                          ║
+# ║ - CORS activated                                 ║
+# ║ - CONTEXT PATH Enabled SSL/TLS                   ║
+# ╚══════════════════════════════════════════════════╝
+management-api:
+  http:
+    port: 8084
+    host: 0.0.0.0
+    context-path: /management
+  security:
+    enabled: true
+  cors:
+    allowedOrigins: "*"
+# ╔══════════════════════════════════════════════════╗
+# ║Section Analytics : sent analitics to MongoDB     ║
+# ║ - Authentification activated                     ║
+# ║ - Using proxy.infra.docker (proxy envoy)         ║
+# ╚══════════════════════════════════════════════════╝
+analytics:
+  type: mongodb
+  mongodb:
+    hosts:
+      - https://proxy.infra.docker:27018
+    index: gravitee-all-analytics
+    username: ${ds.mongodb.username}
+    password: ${ds.mongodb.password}
+# ╔══════════════════════════════════════════════════╗
+# ║Section Logs :                                    ║
+# ╚══════════════════════════════════════════════════╝
+logging:
+  level: INFO
+  file: /var/log/gravitee-mgnt/apim.log
+  format: json
+  max-file-size: 10MB
+  max-history: 30
+# ╔══════════════════════════════════════════════════╗
+# ║Section Http server : for GRAVITEE-MANAGEMENT-UI  ║
+# ║ - Enabled gravitee api mangement to speak with UI║
+# ║ - Enabled TLS/SSL                                ║
+# ╚══════════════════════════════════════════════════╝
+http:
+  port: 8080
+  host: 0.0.0.0
+  sslEnabled: true
+  # sslKeystore:
+  #   path: /path/to/keystore.jks
+  #   password: changeit
+# ╔══════════════════════════════════════════════════╗
+# ║Section Tracing :                                 ║
+# ║ - Enabled tracing for gravitee queries           ║
+# ║ - Enabled Jaeger                                 ║
+# ╚══════════════════════════════════════════════════╝
+tracing:
+  enabled: true
+  provider: jaeger
+  endpoint: http://jaeger:14268/api/traces
+  samplingRate: 1.0
+# ╔══════════════════════════════════════════════════╗
+# ║ 🔐 Section Security :                            ║
+# ║ - Enabled JWT for access to api mangement        ║
+# ║ - Enabled oauth2 for access to api mangement     ║
+# ║ - Enabled apiKey for access to api mangement     ║
+# ║ - Enabled CORS                                   ║
+# ╚══════════════════════════════════════════════════╝
+security:
+  jwt:
+    issuer: gravitee.io
+    secret: mySuperSecret
+    algorithm: HS256
+  oauth2:
+    enabled: true
+  apiKey:
+    enabled: true
+  cors:
+    allowedOrigins: "*"
+# ╔══════════════════════════════════════════════════╗
+# ║Section Alerting  : sent notification to slack    ║
+# ║ - Enabled slack                                  ║
+# ║ - Enabled TLS/SSL                                ║
+# ╚══════════════════════════════════════════════════╝
+alerting:
+  email:
+    host: smtp.lamboft.it
+    port: 587
+    user: gravitee-alerts@lamboft.it
+    password: secret
+    from: gravitee-alerts@lamboft.it
+  slack:
+    webhookUrl: https://hooks.slack.com/services/
+  webhook:
+    url: https://my.alerting.service/notify
+# ╔══════════════════════════════════════════════════╗
+# ║Section Redis cache  :                            ║
+# ║ - Enabled redis                                  ║
+# ║ - Enabled TLS/SSL                                ║
+# ╚══════════════════════════════════════════════════╝
+cache:
+  type: redis
+  redis:
+    host: redis.infra.docker
+    port: 6379
+    password: secret
+# ╔══════════════════════════════════════════════════╗
+# ║Section Plugins  :                                ║
+# ║ - Enabled plugins                                ║
+# ╚══════════════════════════════════════════════════╝
+plugins:
+  enabled: true
+  pluginFolder: /opt/gravitee-mgnt/plugins
+# ╔══════════════════════════════════════════════════╗
+# ║Section export gravitee analytics  :              ║
+# ║ - Enabled                                        ║
+# ╚══════════════════════════════════════════════════╝
+analytics-export:
+  rabbitmq:
+    brokers:
+      - rabbitmq:9092
+    topic: gravitee-all-analytics
+# ╔══════════════════════════════════════════════════╗
+# ║Section Clustering  :                             ║
+# ║ - Enabled plugins                                ║
+# ╚══════════════════════════════════════════════════╝
+deployment:
+  mode: clustered
+  nodeId: node-01

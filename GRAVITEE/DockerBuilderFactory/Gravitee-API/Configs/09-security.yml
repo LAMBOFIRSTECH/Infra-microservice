@@ -1,0 +1,18 @@
+# ╔══════════════════════════════════════════════════╗
+# ║ 🔐 Section Security :                            ║
+# ║ - Enabled JWT for access to api mangement        ║
+# ║ - Enabled oauth2 for access to api mangement     ║
+# ║ - Enabled apiKey for access to api mangement     ║
+# ║ - Enabled CORS                                   ║
+# ╚══════════════════════════════════════════════════╝
+security:
+  jwt:
+    issuer: gravitee.io
+    secret: mySuperSecret
+    algorithm: HS256
+  oauth2:
+    enabled: true
+  apiKey:
+    enabled: true
+  cors:
+    allowedOrigins: "*"

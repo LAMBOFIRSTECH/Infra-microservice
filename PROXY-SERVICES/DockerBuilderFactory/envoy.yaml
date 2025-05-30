@@ -1,0 +1,67 @@
+static_resources:
+  listeners:
+    - name: mongo_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 27018
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.tcp_proxy
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+                stat_prefix: mongo_tcp
+                cluster: mongo_cluster
+          transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              common_tls_context:
+                tls_certificates:
+                  - certificate_chain:
+                      filename: "/opt/envoy/tls/backend.pem"
+                    private_key:
+                      filename: "/opt/envoy/tls/backend.pem"
+                validation_context:
+                  trusted_ca:
+                    filename: "/opt/envoy/tls/vault-ca.crt"
+                  # match_subject_alt_names:
+                  #   - exact: "vault.infra.docker"  # CN/SAN de Vault client
+
+  clusters:
+    - name: mongo_cluster
+      connect_timeout: 5s
+      type: logical_dns
+      lb_policy: round_robin
+      load_assignment:
+        cluster_name: mongo_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 172.21.0.2  # Nom DNS Docker ou IP Mongo
+                      port_value: 27017
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
+            tls_certificates:
+              - certificate_chain:
+                  filename: "/opt/envoy/tls/backend.pem"
+                private_key:
+                  filename: "/opt/envoy/tls/backend.pem"
+            validation_context:
+              trusted_ca:
+                filename: "/opt/envoy/tls/vault-ca.crt"
+              match_subject_alt_names:
+                - exact: "mongo.infra.docker"  # CN/SAN du cert Mongo
+
+## à enlever
+admin:
+  access_log_path: "/dev/null"
+  address:
+    socket_address:
+      address: 172.21.0.3
+      port_value: 9901

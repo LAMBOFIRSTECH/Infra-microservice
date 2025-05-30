@@ -1,0 +1,19 @@
+############################################################################################
+################################ Gravitee.IO Management API - Configuration ################
+############################################################################################
+
+############################################################################################
+# ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ 
+# ╔══════════════════════════════════════════════════════════════╗
+# ║ NB : Aucune modification ne doit etre faite dans gravitee.yml║
+# ║Pour chaque nouvelle directives, veuillez la rajouter dans le ║
+# ║sous fichier correspondant.                                   ║
+# ║                                                              ║
+# ║A chaque redémarrage du service `cat *.yml > gravitee.yml`    ║
+# ║⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳⏳  ║
+# ║Exemple :                                                     ╚═══════════════════════╗
+# ║Je souhaite changer le context path de l'api => 04-management-api.yml                 ║
+# ║Je souhaite utiliser elasticsearch pour l'indexation dans gravitee => 05-analytics.yml║
+# ╚══════════════════════════════════════════════════════════════════════════════════════╝
+# ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ ⛔ 
+############################################################################################

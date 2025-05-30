@@ -1,0 +1,9 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Logs :                                    ║
+# ╚══════════════════════════════════════════════════╝
+logging:
+  level: INFO
+  file: /var/log/gravitee-mgnt/apim.log
+  format: json
+  max-file-size: 10MB
+  max-history: 30

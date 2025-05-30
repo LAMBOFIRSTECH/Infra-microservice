@@ -1,0 +1,27 @@
+volumes:
+  data:
+networks:
+  net_api:
+    external: true
+
+services:
+  rabbitmq:
+    image: lambops/rabbitmq:secure
+    container_name: RABBITMQ
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [ "CMD","rabbitmq-diagnostics", "-q", "ping"]
+      interval: 300s
+      timeout: 100s
+      retries: 3
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    expose:
+      - "5672"
+      - "15672"
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.5

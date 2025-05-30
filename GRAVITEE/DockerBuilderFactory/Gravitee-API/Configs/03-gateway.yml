@@ -1,0 +1,19 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Gateway :                                 ║
+# ║ - Distributed tracing  activated                 ║
+# ║                                                  ║
+# ╚══════════════════════════════════════════════════╝
+gateway:
+  http:
+    port: 8083
+    host: 0.0.0.0
+  proxy:
+    connectTimeout: 1000
+    socketTimeout: 30000
+  rateLimit:
+    enabled: true
+    defaultLimit: 1000
+  tracing:
+    enabled: true
+    provider: jaeger
+    endpoint: http://jaeger:14268/api/traces

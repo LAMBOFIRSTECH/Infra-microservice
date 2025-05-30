@@ -1,0 +1,13 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Analytics : sent analitics to MongoDB     ║
+# ║ - Authentification activated                     ║
+# ║ - Using proxy.infra.docker (proxy envoy)         ║
+# ╚══════════════════════════════════════════════════╝
+analytics:
+  type: mongodb
+  mongodb:
+    hosts:
+      - https://proxy.infra.docker:27018
+    index: gravitee-all-analytics
+    username: ${ds.mongodb.username}
+    password: ${ds.mongodb.password}

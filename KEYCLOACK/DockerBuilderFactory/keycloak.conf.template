@@ -1,0 +1,32 @@
+##=== DB POSTGRES ===###
+db=postgres
+db-url=jdbc:postgresql://postgres:5432/keycloak_db?sslmode=require
+db-username=keycloak_service
+db-password={{DB_PASSWORD}}
+# db-password=Art437810 pour les tests en local
+
+##=== CERTIFICATS ===###
+https-certificate-file=/opt/keycloak/certs/backend.crt
+https-certificate-key-file=/opt/keycloak/certs/backend.key
+http-enabled=false
+
+hostname={{HOSTNAME}}
+hostname-strict=false
+
+# Définir le context path ici
+KC_HTTP_RELATIVE_PATH={{KEYCLOAK_PATH_CONTEXT}}
+
+proxy-ssl=true
+proxy-address-forwarding=true
+proxy-headers=xforwarded
+
+keycloak.admin-console-enabled=true
+
+metrics-enabled=true
+health-enabled=true
+health-ui-enabled=false
+metrics-ui-enabled=false
+
+log=console,file
+log-console-level=warn
+log-file-level=info

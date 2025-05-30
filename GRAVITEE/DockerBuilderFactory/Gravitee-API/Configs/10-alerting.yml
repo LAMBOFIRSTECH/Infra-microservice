@@ -1,0 +1,16 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Alerting  : sent notification to slack    ║
+# ║ - Enabled slack                                  ║
+# ║ - Enabled TLS/SSL                                ║
+# ╚══════════════════════════════════════════════════╝
+alerting:
+  email:
+    host: smtp.lamboft.it
+    port: 587
+    user: gravitee-alerts@lamboft.it
+    password: secret
+    from: gravitee-alerts@lamboft.it
+  slack:
+    webhookUrl: https://hooks.slack.com/services/
+  webhook:
+    url: https://my.alerting.service/notify

@@ -1,0 +1,14 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Management API :                          ║
+# ║ - CORS activated                                 ║
+# ║ - CONTEXT PATH Enabled SSL/TLS                   ║
+# ╚══════════════════════════════════════════════════╝
+management-api:
+  http:
+    port: 8084
+    host: 0.0.0.0
+    context-path: /management
+  security:
+    enabled: true
+  cors:
+    allowedOrigins: "*"

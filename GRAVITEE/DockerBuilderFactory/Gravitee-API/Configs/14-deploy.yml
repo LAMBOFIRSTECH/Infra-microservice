@@ -1,0 +1,7 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Clustering  :                             ║
+# ║ - Enabled plugins                                ║
+# ╚══════════════════════════════════════════════════╝
+deployment:
+  mode: clustered
+  nodeId: node-01

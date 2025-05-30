@@ -1,0 +1,11 @@
+# ╔══════════════════════════════════════════════════╗
+# ║Section Redis cache  :                            ║
+# ║ - Enabled redis                                  ║
+# ║ - Enabled TLS/SSL                                ║
+# ╚══════════════════════════════════════════════════╝
+cache:
+  type: redis
+  redis:
+    host: redis.infra.docker
+    port: 6379
+    password: secret
