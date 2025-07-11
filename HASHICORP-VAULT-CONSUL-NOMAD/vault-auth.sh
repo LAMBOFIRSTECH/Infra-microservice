@@ -143,13 +143,16 @@ function renew_keycloak_password() {
   fi
   mkdir -p /vault/shared
   colors "YELLOW" "🔐 sauvegarde du mot de passe keycloak_service dans le dossier partagé"
-  echo "$KEYCLOAK_PASS" >/vault/shared/services_pass.txt
+  echo "KEYCLOAK_PASS=$KEYCLOAK_PASS" >/vault/shared/services_pass.txt
 }
 
 function renew_gravitee_password() {
   ################### proxy.infra.docker:27018 (Proxy envoy)##### Pas de tls_certificate_key=@/opt/vault/tls/backend.pem à moins que mongo demande pb de mutualité
   colors "YELLOW" "⏳ Tentative de connexion à mongodb et mise à jour du mot de passe de gravitee_service."
 
+  # ╔══════════════════════════════════════════════════╗
+  # ║Configuration pour bd MongoDb-Gravitee_db         ║
+  # ╚══════════════════════════════════════════════════╝
   vault write database/config/gravitee_db \
     plugin_name=mongodb-database-plugin \
     allowed_roles="vault_mongo" \
@@ -163,13 +166,23 @@ function renew_gravitee_password() {
     username="gravitee_service" \
     rotation_statements='db.changeUserPassword("gravitee_service", "{{password}}")' \
     rotation_period="24h"
-# bd analytics
-    # vault write database/static-roles/vault_mongo \
-    # db_name="gravitee_analytics" \
-    # username="gravitee_service" \
-    # rotation_statements='db.changeUserPassword("gravitee_service", "{{password}}")' \
-    # rotation_period="24h"
 
+  # ╔══════════════════════════════════════════════════╗
+  # ║Configuration pour bd MongoDb-Gravitee_analytics  ║
+  # ╚══════════════════════════════════════════════════╝
+  vault write database/config/gravitee_analytics \
+    plugin_name=mongodb-database-plugin \
+    allowed_roles="vault_mongo" \
+    connection_url="mongodb://{{username}}:{{password}}@proxy.infra.docker:27018/gravitee_analytics?authSource=gravitee_analytics&authMechanism=SCRAM-SHA-256" \
+    tls_ca=@/opt/vault/tls/vault-ca.crt \
+    username="vault_admin" \
+    password="1234"
+    
+  vault write database/static-roles/vault_mongo \
+    db_name="gravitee_analytics" \
+    username="gravitee_service" \
+    rotation_statements='db.changeUserPassword("gravitee_service", "{{password}}")' \
+    rotation_period="24h"
 
   GRAVITEE_PASS=$(vault read database/static-creds/vault_mongo | grep password | awk '{print $NF}')
   if [[ $? -ne 0 ]]; then
@@ -177,7 +190,7 @@ function renew_gravitee_password() {
     exit 1
   fi
   colors "YELLOW" "🔐 sauvegarde du mot de passe gravitee_service dans le dossier partagé"
-  echo "$GRAVITEE_PASS" >>/vault/shared/services_pass.txt
+  echo "GRAVITEE_PASS=$GRAVITEE_PASS" >>/vault/shared/services_pass.txt
 }
 main() {
   start_motors
@@ -192,10 +205,11 @@ main() {
   vault policy write external-services appRole-policy.hcl
 
   get_application_credentials
-  renew_keycloak_password
-  renew_gravitee_password
+  # pas besoin de ceux du bas pour les tests en local
+  # renew_keycloak_password 
+  # renew_gravitee_password
 
-  colors "CYAN" "🧹 Suppression des fichiers confidentiels. (Token & MDP des services gravitee et keycloak)"
+  colors "CYAN" "🧹 Suppression des fichiers confidentiels. (Token de connexion de vault)"
   rm token.txt
   if [[ $? -ne 0 ]]; then
     colors "RED" "🧹 Vault n'a pas pu supprimer les fichiers confidentiels."

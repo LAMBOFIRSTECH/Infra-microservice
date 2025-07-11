@@ -1,23 +1,33 @@
-version: '3.3'
+volumes:
+  redis-log:
+
+networks:
+  cache_redis:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16
 
 services:
   redis:
-    image: redis:latest
-    container_name: redis-secure
+    image: lambops/redis:secure
+    container_name: REDIS-CACHE
+    restart: always
     ports:
      - "6379:6379"  # Expose Redis seulement si nécessaire
     networks:
-      - redis
+      cache_redis:
+        ipv4_address: 172.25.0.2
     volumes:
-      - ./redis-data:/data  
-      - ./redis.conf:/usr/local/etc/redis/redis.conf  
-      - ./certs:/certs  
+      - ./redis.conf:/opt/redis/redis.conf
+      # - ./DockerBuilderFactory/Certs:/opt/redis/tls
       - /etc/localtime:/etc/localtime:ro 
       - ./redis-log:/var/log/redis
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD} 
     command: >
-      redis-server /usr/local/etc/redis/redis.conf 
+      redis-server /opt/redis/redis.conf
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 30s
@@ -29,23 +39,23 @@ services:
         max-size: "15m"  
         max-file: "1"     
     tty: true
+    extra_hosts:
+      - "redis.infra.docker:172.25.0.2"
   redisinsight:
-    image: redislabs/redisinsight:latest
+    image: redislabs/redisinsight:2.70
     container_name: REDIS-WEB
+    restart: always
     ports:
     - "5540:5540"  # RedisInsight web interface
     environment:
     - REDIS_HOST=redis
     - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
-      - redis
-     
+      cache_redis:
+        ipv4_address: 172.25.0.3
     depends_on:
     - redis
+    extra_hosts:
+      - "redisinsight.infra.docker:172.25.0.3"
     volumes:
     - ./Redis/redisinsight_data:/root/.redisinsight
-    restart: always
-
-networks:
-  redis:
-    driver: bridge
