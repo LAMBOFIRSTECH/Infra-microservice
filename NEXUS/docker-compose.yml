@@ -1,0 +1,7 @@
+services:
+  nexus:
+    image: lambops/nexus:secure
+    container_name: NEXUS
+    restart: always
+    expose:
+      - "8081"
