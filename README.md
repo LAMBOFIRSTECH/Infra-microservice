@@ -6,67 +6,69 @@ Infrastructure-focused microservice designed to support and streamline platform 
 
 Below is a summarized tree structure of the project directories, highlighting the major components, their environments, and build contexts. This overview helps understand how the infrastructure is organized and where specific responsibilities are encapsulated.
 
-├── GRAFANA
-│   ├── Config/                # Configuration files for OpenTelemetry and Prometheus.
-│   ├── Distant-develop/       # Remote deployment configurations (Docker Compose).
-│   ├── DockerBuilderFactory/  # Build context with Dockerfile and SSL certificates.
-│   ├── config/                # Alternative or legacy telemetry configurations.
-│   └── docker-compose.yml     # Grafana service definition.
+Infra-Microservice/
+├── GRAFANA/
+│   ├── Config/                 # OpenTelemetry & Prometheus configuration files
+│   ├── Distant-develop/        # Remote deployment configs (Docker Compose)
+│   ├── DockerBuilderFactory/   # Docker build context, Dockerfile & SSL certs
+│   ├── config/                 # Alternative or legacy telemetry configs
+│   └── docker-compose.yml      # Grafana service definition
 │
-├── GRAVITEE
-│   ├── Distant-develop/       # Remote Docker Compose for Gravitee stack.
-│   ├── DockerBuilderFactory/  # Modular build structure for Gateway, API, UI, and MongoDB.
-│   │   ├── Gravitee-API/      # API configurations, Dockerfile, init scripts.
-│   │   ├── Gravitee-Gateway/  # Gateway-specific Dockerfile and certificates.
-│   │   ├── Gravitee-Ui/       # UI service Dockerfile and SSL support.
-│   │   └── Mongodb/           # MongoDB initialization scripts and secure setup.
-│   ├── data-mongo/            # MongoDB volume mount for persistence.
-│   └── docker-compose.yml     # Gravitee suite orchestration.
+├── GRAVITEE/
+│   ├── Distant-develop/        # Remote Docker Compose for Gravitee stack
+│   ├── DockerBuilderFactory/   # Modular builds for Gateway, API, UI, MongoDB
+│   │   ├── Gravitee-API/       # API configs, Dockerfile & init scripts
+│   │   ├── Gravitee-Gateway/   # Gateway Dockerfile & certificates
+│   │   ├── Gravitee-Ui/        # UI service Dockerfile & SSL support
+│   │   └── Mongodb/            # MongoDB init scripts and secure setup
+│   ├── data-mongo/             # MongoDB persistent data volume mount
+│   └── docker-compose.yml      # Gravitee suite orchestration
 │
-├── HARBOR
-│   ├── harbor/                # Harbor installer scripts and configuration templates.
-│   └── harbor-online-installer-v2.10.0.tgz  # Prepackaged installer archive.
+├── HARBOR/
+│   ├── harbor/                 # Installer scripts & configuration templates
+│   └── harbor-online-installer-v2.10.0.tgz  # Prepackaged installer archive
 │
-├── HASHICORP-VAULT-CONSUL-NOMAD
-│   ├── DockerBuilderFactory/  # Build context for Vault, Consul, and Nomad.
-│   ├── Env-Dev/               # Dev environment with compose files and init scripts.
-│   ├── vault-config/          # Configuration files for Vault and Consul agents.
-│   └── vault-data/            # Vault’s persistent secrets and ID files.
-│   └── vault-init.sh          # Initialize and unsealed vault secrets.
-│   └── vault-auth.sh          # This script automates the secure initialization and configuration of HashiCorp Vault, including secret engines, access policies, AppRole authentication, and dynamic credential management for PostgreSQL, MongoDB services and others ...
+├── HASHICORP-VAULT-CONSUL-NOMAD/
+│   ├── DockerBuilderFactory/   # Vault, Consul & Nomad Docker build context
+│   ├── Env-Dev/                # Development environment compose files & init scripts
+│   ├── vault-config/           # Vault and Consul agent configuration files
+│   ├── vault-data/             # Persistent vault secrets and ID files
+│   ├── vault-init.sh           # Vault initialization & unseal scripts
+│   └── vault-auth.sh           # Automates Vault secure setup, policies & credentials management
 │
-├── KEYCLOAK
-│   ├── Certs/                 # TLS certificates for localhost development.
-│   ├── Distant-develop/       # Remote environment Docker Compose.
-│   ├── DockerBuilderFactory/  # Docker image building for Keycloak and PostgreSQL backend.
-│   └── openldap/              # Logging directory for OpenLDAP backend.
+├── KEYCLOAK/
+│   ├── Certs/                  # TLS certificates for local development
+│   ├── Distant-develop/        # Remote Docker Compose environment
+│   ├── DockerBuilderFactory/   # Docker build for Keycloak & PostgreSQL backend
+│   └── openldap/               # OpenLDAP logging directory
 │
-├── NEXUS
-│   ├── DockerBuilderFactory/  # Custom Docker image for Nexus with startup scripts.
-│   ├── Env-DEV/               # Development deployment files.
-│   └── docker-compose.yml     # Nexus container definition.
+├── NEXUS/
+│   ├── DockerBuilderFactory/   # Custom Nexus Docker image & startup scripts
+│   ├── Env-DEV/                # Development deployment files
+│   └── docker-compose.yml      # Nexus container setup
 │
-├── OPENLDAP
-│   ├── DockerBuilderFactory/  # OpenLDAP and phpLDAPadmin build contexts.
-│   │   ├── LdapDockerBuilderImage/     # LDAP Docker image setup with SSL and init files.
-│   │   └── phpDockerBuilderImage/      # phpLDAPadmin Docker image setup.
-│   ├── __ldap/                # Python scripts for audit logging and RabbitMQ logging integration.
-│   └── auditlog.sh            # Audit logging activation script.
+├── OPENLDAP/
+│   ├── DockerBuilderFactory/   # OpenLDAP & phpLDAPadmin build contexts
+│   │   ├── LdapDockerBuilderImage/  # LDAP Docker image with SSL & init files
+│   │   └── phpDockerBuilderImage/   # phpLDAPadmin Docker image setup
+│   ├── __ldap/                 # Python scripts for audit logging & RabbitMQ integration
+│   └── auditlog.sh             # Audit logging activation script
 │
-├── PROXY-SERVICES
-│   ├── Distant-develop/       # Envoy proxy remote setup.
-│   └── DockerBuilderFactory/  # Envoy build context and SSL-secured config.
+├── PROXY-SERVICES/
+│   ├── Distant-develop/        # Envoy proxy remote setup
+│   └── DockerBuilderFactory/   # Envoy Docker build & SSL-secured config
 │
-├── RABBITMQ
-│   ├── Distant-develop/       # RabbitMQ remote deployment configuration.
-│   ├── data/                  # Data persistence folder for message queues.
-│   └── docker-compose.yml     # RabbitMQ service setup.
+├── RABBITMQ/
+│   ├── Distant-develop/        # RabbitMQ remote deployment configuration
+│   ├── data/                   # RabbitMQ data persistence directory
+│   └── docker-compose.yml      # RabbitMQ service definition
 │
-├── REDIS
-│   ├── DockerBuilderFactory/  # Redis Docker image and secure config.
-│   ├── redis-log/             # Logging output directory.
-│   └── docker-compose.yml     # Redis deployment file.
+├── REDIS/
+│   ├── DockerBuilderFactory/   # Redis Docker image and secure configuration
+│   ├── redis-log/              # Redis log output directory
+│   └── docker-compose.yml      # Redis deployment configuration
 
 
-📦 Overview of Docker Services and Static IPs.
- [View Repo](https://github.com/LAMBOFIRSTECH/Infra-microservice/blob/main/Ips.md)
+
+📦 Docker Services and Static IPs
+For detailed service IP mappings and Docker networking setup, see the [IP documentation](https://github.com/LAMBOFIRSTECH/Infra-microservice/blob/main/Ips.md)
