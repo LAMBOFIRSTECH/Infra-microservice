@@ -2,46 +2,71 @@
 
 Infrastructure-focused microservice designed to support and streamline platform components such as networking, service discovery, configuration, and secrets management.Infrastructure-focused microservice designed to support and streamline platform components such as networking, service discovery, configuration, and secrets management.
 
+📁 Project Structure Overview
 
-📦 Overview of Docker Services and Static IPs
-This table summarizes all Docker services deployed in the infrastructure, along with their static IP addresses, network associations, and shared volumes for persistent or inter-service communication.
+Below is a summarized tree structure of the project directories, highlighting the major components, their environments, and build contexts. This overview helps understand how the infrastructure is organized and where specific responsibilities are encapsulated.
 
-| **Service**          | **IP Address**   | **Network**    | **Shared Volumes**       | **Description**                                                                   |
-| -------------------- | ---------------- | -------------- | ------------------------ | --------------------------------------------------------------------------------- |
-| **Envoy**            | 172.21.0.3       | –              | –                        | High-performance proxy used as reverse proxy and load balancer.                   |
-| **MongoDB**          | 172.19.0.3       | –              | –                        | NoSQL database used to persist structured/unstructured data.                      |
-| -------------------- | ---------------- | -------------- | ------------------------ | --------------------------------------------------------------------------------- |
-| **Redis**            | 172.28.0.2       | `net_api`      | –                        | In-memory cache system used for fast token and session storage.                   |
-| **Consul**           | 172.28.0.3       | `net_api`      | ✔ (`!= null`)            | Service discovery and configuration tool used to register and track services.     |
-| **Nomad**            | 172.28.0.4       | `net_api`      | ✔ (`!= null`)            | HashiCorp's scheduler for deploying and managing containerized workloads.         |
-| **RabbitMQ**         | 172.28.0.5       | `net_api`      | ✔ (`!= null`)            | Asynchronous message broker enabling communication between services.              |
-| **Vault**            | 172.28.0.6       | `net_api`      | ✔ `shared-secret`        | Secure secret management service to store tokens, passwords, and credentials.     |
-| **Nexus**            | 172.28.0.7       | `net_api`      | –                        | Artifact repository used to host Docker images and NuGet/npm packages.            |
-| -------------------- | ---------------- | -------------- | ------------------------ | --------------------------------------------------------------------------------- |
-| **Otel-Collector**   | 172.28.0.13      | –              | –                        | OpenTelemetry Collector for metrics and traces aggregation.                       |
-| **Prometheus**       | 172.28.0.14      | –              | –                        | Monitoring tool used to scrape and store time-series metrics.                     |
-| **Grafana**          | 172.28.0.15      | –              | –                        | Visualization tool for dashboards and alerts (connected to Prometheus).           |
-| **Node Exporter**    | 172.28.0.16      | –              | –                        | Prometheus exporter for hardware and OS metrics from host systems.                |
-| -------------------- | ---------------- | -------------- | ------------------------ | --------------------------------------------------------------------------------- |
-| **Gravitee Gateway** | 172.28.0.17      | –              | –                        | API Gateway component of Gravitee for request routing and rate limiting.          |
-| **Gravitee API**     | 172.28.0.18      | –              | ✔ `shared-secret`        | Management API for Gravitee, used to configure and publish APIs.                  |
-| **Gravitee UI**      | 172.28.0.19      | –              | –                        | User interface for managing Gravitee APIs and policies.                           |
-| -------------------- | ---------------- | -------------- | ------------------------ | --------------------------------------------------------------------------------- |
-| **PhpLDAPadmin**     | 172.28.0.30      | –              | –                        | Web UI to manage LDAP users and groups visually.                                  |
-| **OpenLDAP**         | 172.28.0.31      | –              | –                        | Lightweight directory service for storing user credentials.                       |
-| **Keycloak**         | 172.28.0.32      | –              | ✔ `shared-secret`        | Identity and access management service, main authentication provider.             |
-| **PG-Keycloak**      | 172.28.0.33      | –              | –                        | PostgreSQL database backend used by Keycloak for storing user metadata.           |
+├── GRAFANA
+│   ├── Config/                # Configuration files for OpenTelemetry and Prometheus.
+│   ├── Distant-develop/       # Remote deployment configurations (Docker Compose).
+│   ├── DockerBuilderFactory/  # Build context with Dockerfile and SSL certificates.
+│   ├── config/                # Alternative or legacy telemetry configurations.
+│   └── docker-compose.yml     # Grafana service definition.
+│
+├── GRAVITEE
+│   ├── Distant-develop/       # Remote Docker Compose for Gravitee stack.
+│   ├── DockerBuilderFactory/  # Modular build structure for Gateway, API, UI, and MongoDB.
+│   │   ├── Gravitee-API/      # API configurations, Dockerfile, init scripts.
+│   │   ├── Gravitee-Gateway/  # Gateway-specific Dockerfile and certificates.
+│   │   ├── Gravitee-Ui/       # UI service Dockerfile and SSL support.
+│   │   └── Mongodb/           # MongoDB initialization scripts and secure setup.
+│   ├── data-mongo/            # MongoDB volume mount for persistence.
+│   └── docker-compose.yml     # Gravitee suite orchestration.
+│
+├── HARBOR
+│   ├── harbor/                # Harbor installer scripts and configuration templates.
+│   └── harbor-online-installer-v2.10.0.tgz  # Prepackaged installer archive.
+│
+├── HASHICORP-VAULT-CONSUL-NOMAD
+│   ├── DockerBuilderFactory/  # Build context for Vault, Consul, and Nomad.
+│   ├── Env-Dev/               # Dev environment with compose files and init scripts.
+│   ├── vault-config/          # Configuration files for Vault and Consul agents.
+│   └── vault-data/            # Vault’s persistent secrets and ID files.
+│   └── vault-init.sh          # Initialize and unsealed vault secrets.
+│   └── vault-auth.sh          # This script automates the secure initialization and configuration of HashiCorp Vault, including secret engines, access policies, AppRole authentication, and dynamic credential management for PostgreSQL, MongoDB services and others ...
+│
+├── KEYCLOAK
+│   ├── Certs/                 # TLS certificates for localhost development.
+│   ├── Distant-develop/       # Remote environment Docker Compose.
+│   ├── DockerBuilderFactory/  # Docker image building for Keycloak and PostgreSQL backend.
+│   └── openldap/              # Logging directory for OpenLDAP backend.
+│
+├── NEXUS
+│   ├── DockerBuilderFactory/  # Custom Docker image for Nexus with startup scripts.
+│   ├── Env-DEV/               # Development deployment files.
+│   └── docker-compose.yml     # Nexus container definition.
+│
+├── OPENLDAP
+│   ├── DockerBuilderFactory/  # OpenLDAP and phpLDAPadmin build contexts.
+│   │   ├── LdapDockerBuilderImage/     # LDAP Docker image setup with SSL and init files.
+│   │   └── phpDockerBuilderImage/      # phpLDAPadmin Docker image setup.
+│   ├── __ldap/                # Python scripts for audit logging and RabbitMQ logging integration.
+│   └── auditlog.sh            # Audit logging activation script.
+│
+├── PROXY-SERVICES
+│   ├── Distant-develop/       # Envoy proxy remote setup.
+│   └── DockerBuilderFactory/  # Envoy build context and SSL-secured config.
+│
+├── RABBITMQ
+│   ├── Distant-develop/       # RabbitMQ remote deployment configuration.
+│   ├── data/                  # Data persistence folder for message queues.
+│   └── docker-compose.yml     # RabbitMQ service setup.
+│
+├── REDIS
+│   ├── DockerBuilderFactory/  # Redis Docker image and secure config.
+│   ├── redis-log/             # Logging output directory.
+│   └── docker-compose.yml     # Redis deployment file.
 
 
-Tableau récapitualif des API backend
------------------------------------------------------------------------------------
-| Backend API    | Ip Address    | Réseau                | Nugget Packages        |
-| ---------------| --------------|-----------------------|----------------------- |
-| **Team**       |172.25.0.4     |                       |`CustomVaultPackage`    |
-|                |               |                       |                        |
-| **Project**    |172.25.0.5     |                       |                        |
-|                |               |                       |                        |
-| **Auth**       |172.25.0.3     |                       |                        |
------------------------------------------------------------------------------------
-
-![Schéma auth](./healthcheck_ldap_keycloak_postgres_phpadmin.png)
+📦 Overview of Docker Services and Static IPs.
+ [View Repo](https://github.com/LAMBOFIRSTECH/Infra-microservice/blob/main/Ips.md)
