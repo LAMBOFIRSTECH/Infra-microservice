@@ -1,1 +1,0 @@
-Configurer les pod kubernetes pour chaque application
