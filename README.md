@@ -35,6 +35,9 @@ Below is a summarized tree structure of the project directories, highlighting th
     │   ├── harbor/                 # Installer scripts & configuration templates
     │   └── harbor-online-installer-v2.10.0.tgz  # Prepackaged installer archive
     │
+    ├── K6/ ( Tester la robustesse des backend avant déploiement)
+    │   ├── file.k6.js               
+    |
     ├── HASHICORP-VAULT-CONSUL-NOMAD/ (Gestion des secrets, du sservice discovery et orchestration de conteneur)
     │   ├── DockerBuilderFactory/   # Vault, Consul & Nomad Docker build context
     │   ├── Env-Dev/                # Development environment compose files & init scripts
