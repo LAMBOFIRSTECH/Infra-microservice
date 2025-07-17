@@ -1,4 +1,11 @@
 # Dépot des configurations ansible sur le serveur distant 
+## Taches infrastructure à faire pour les images docker que l'on souhaite pousser sur le registry privé
+
+### 1. Construction de l'image docker
+- [X] Trivy image <nom_image>
+- [] Scripts qui permet de visualiser les vulnérabilités de l'image et imposer des restrictions en fonction des criticités
+- [] Gérer aussi la sécurité du conteneur docker dans lequel l'image est déployée
+
 
 ## Tester la connection avec un ping
 `ansible-playbook -i inventory.ini main.yaml -v`
