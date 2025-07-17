@@ -1,9 +1,9 @@
 
-# Objectif de ce combo 
+# Objectif de la combinaison Terraform + Ansible sur l'infra docker 
 
 
 | Ressource Docker                | Terraform                 | Ansible       |    
-| ------------------------------- | --------------------------- --------------| 
+| ------------------------------- | --------------------------| --------------| 
 | Réseaux (`docker_network`)      | ✅ Terraform              | ⚠️ Non       |
 | Volumes (`docker_volume`)       | ✅ Terraform              | ⚠️ Non       |
 | Conteneurs (`docker_container`) | ⚠️ Oui, mais peu pratique | ✅ Ansible   | 
