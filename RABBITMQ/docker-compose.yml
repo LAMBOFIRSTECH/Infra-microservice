@@ -1,0 +1,15 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: RABBITMQ
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./data:/data
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}  # Utilisateur par défaut
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}  # Mot de passe par défaut
+    restart: always
+volumes:
+  data:

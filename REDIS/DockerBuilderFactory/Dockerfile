@@ -60,7 +60,8 @@ RUN chmod -R 755 /opt/redis && \
     chown -R redis-service:ssl-cert /opt/redis/tls && \
     chmod 600 /opt/redis/tls/backend.key && \
     update-ca-certificates && \
-    cp /usr/local/share/ca-certificates/vault-ca.crt /opt/redis/tls/vault-ca.crt 
+    cp /usr/local/share/ca-certificates/vault-ca.crt /opt/redis/tls/vault-ca.crt && \
+    chown redis-service:ssl-cert /opt/redis/tls/vault-ca.crt
 
 # Passer à l'utilisateur non-root
 USER redis-service

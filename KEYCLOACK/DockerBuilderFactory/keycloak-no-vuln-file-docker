@@ -1,0 +1,78 @@
+# ╔══════════════════════════════════════════════════╗
+# ║# keycloak 24.2.4 with no vulnerabilities         ║
+# ║- golang:1.24.2-alpine3.21                        ║
+# ╚══════════════════════════════════════════════════╝
+
+# Étape 1 : build de gosu statique sans vulnérabilités
+FROM golang@sha256:3077e12cda6debf8a9eba8eba0b6b4efe6f9c17295a18e3883cc5797d1688acb AS builder
+LABEL stage="builder"
+ENV CGO_ENABLED=0
+
+RUN apk add --no-cache git=2.47.2-r0 && \
+    git clone https://github.com/tianon/gosu.git /src/gosu
+
+WORKDIR /src/gosu
+# Compiler gosu avec CGO désactivé pour un binaire statique
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/gosu
+
+# Étape 2 : Image finale Keycloak sans vulnérabilités
+FROM alpine@sha256:1c4eef651f65e2f7daee7ee785882ac164b02b78fb74503052a26dc061c90474
+
+# Installer les dépendances, créer l'utilisateur Keycloak et préparer les répertoires
+RUN apk add --no-cache bash curl openjdk17-jre shadow && \
+    adduser -D -u 1000 -g 1000 keycloak && \
+    mkdir -p /opt/keycloak /opt/keycloak/certs /opt/shared /opt/keycloak/data/log && \
+    chown -R keycloak:keycloak /opt/keycloak && \
+    chown -R keycloak:keycloak /opt/shared && \
+    chmod -R 755 /opt/keycloak
+
+# Copier le binaire gosu compilé
+COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
+RUN chmod +x /usr/local/bin/gosu
+
+# Étape 3 : Extraction de Keycloak et préparation des fichiers de configuration
+WORKDIR /opt/keycloak
+COPY keycloak.conf.template /opt/keycloak/conf/keycloak.conf.template
+COPY keycloak_pass.sh /opt/keycloak/conf/keycloak_pass.sh
+
+COPY Certs/ /opt/keycloak/certs/
+
+RUN curl -L https://github.com/keycloak/keycloak/releases/download/26.2.4/keycloak-26.2.4.tar.gz -o keycloak.tar.gz && \
+    tar -xzf keycloak.tar.gz -C /opt/keycloak --strip-components=1 && \
+    rm keycloak.tar.gz && \
+    chown -R keycloak:keycloak /opt/keycloak && \
+    chmod -R 755 /opt/keycloak/conf /opt/keycloak/data /opt/keycloak/data/log && \
+    groupadd ssl-cert && \
+    usermod -aG ssl-cert keycloak && \
+    chown -R keycloak:ssl-cert /opt/keycloak/certs && \
+    chmod 600 /opt/keycloak/certs/backend.key && \
+    chown keycloak:keycloak /opt/keycloak/bin/kc.sh
+
+RUN keytool -importcert \
+    -noprompt \
+    -trustcacerts \
+    -alias vault-ca \
+    -file /opt/keycloak/certs/vault-ca.crt \
+    -keystore $(dirname $(dirname $(readlink -f /usr/bin/java)))/lib/security/cacerts \
+    -storepass changeit
+
+
+# Configuration des informations relatives à l'image Docker
+LABEL maintainer="lamboartur94@gmail.com" \
+    org.opencontainers.image.source="https://github.com/LAMBOFIRSTECH/Infra-microservice/tree/main/KEYCLOACK/DockerBuilderFactory" \
+    org.opencontainers.image.os="linux" \
+    org.opencontainers.image.architecture="amd64" \
+    org.opencontainers.image.version="v2" \
+    org.opencontainers.image.created="2025-05-21T00:00:00Z" \
+    org.opencontainers.image.revision="44" \
+    org.opencontainers.image.title="Keycloak 26.2.4" \
+    org.opencontainers.image.description="Keycloak 26.2.4 with static gosu and no vulnerabilities" \
+    org.opencontainers.image.vendor="LAMBOFIRSTECH"
+
+# Exposer le port sécurisé 8443
+EXPOSE 8443
+
+USER keycloak
+
+# Point d'entrée du conteneur
+ENTRYPOINT ["/opt/keycloak/conf/keycloak_pass.sh"]

@@ -14,4 +14,4 @@
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | **Terraform** | Provisionne l’infrastructure de base :<br>VMs, réseaux, volumes, Docker networks, <br>                                       |
 | **Ansible**   | Configure les services sur les VMs :<br>installation de Docker, <br>déploiement de config, secrets, etc.                     |
-| **Nomad**     | Orchestration des containers/applications :<br>déploiement, scalabilité, restart, binpacking, HA.                            |
+| **Nomad**     | Orchestration des containers/applications :<br>déploiement, scalabilité, restart, HA.                                        |

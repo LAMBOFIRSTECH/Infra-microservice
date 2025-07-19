@@ -1,5 +1,5 @@
-volumes:
-  redis-log:
+# volumes:
+#   redis-log:
 
 networks:
   cache_redis:
@@ -7,7 +7,7 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.25.0.0/16
+        - subnet: 172.29.0.0/16
 
 services:
   redis:
@@ -18,18 +18,18 @@ services:
      - "6379:6379"  # Expose Redis seulement si nécessaire
     networks:
       cache_redis:
-        ipv4_address: 172.25.0.2
+        ipv4_address: 172.29.0.2
     volumes:
       - ./redis.conf:/opt/redis/redis.conf
       # - ./DockerBuilderFactory/Certs:/opt/redis/tls
       - /etc/localtime:/etc/localtime:ro 
-      - ./redis-log:/var/log/redis
+      # - ./redis-log:/var/log/redis
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD} 
+      - REDISCLI_AUTH=${REDISCLI_AUTH} 
     command: >
       redis-server /opt/redis/redis.conf
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDISCLI_AUTH}", "ping"]
       interval: 30s
       timeout: 30s
       retries: 3
@@ -40,22 +40,22 @@ services:
         max-file: "1"     
     tty: true
     extra_hosts:
-      - "redis.infra.docker:172.25.0.2"
-  redisinsight:
-    image: redislabs/redisinsight:2.70
-    container_name: REDIS-WEB
-    restart: always
-    ports:
-    - "5540:5540"  # RedisInsight web interface
-    environment:
-    - REDIS_HOST=redis
-    - REDIS_PASSWORD=${REDIS_PASSWORD}
-    networks:
-      cache_redis:
-        ipv4_address: 172.25.0.3
-    depends_on:
-    - redis
-    extra_hosts:
-      - "redisinsight.infra.docker:172.25.0.3"
-    volumes:
-    - ./Redis/redisinsight_data:/root/.redisinsight
+      - "redis.infra.docker:172.29.0.2"
+  # redisinsight:
+  #   image: redislabs/redisinsight:2.70
+  #   container_name: REDIS-WEB
+  #   restart: always
+  #   ports:
+  #   - "5540:5540"  # RedisInsight web interface
+  #   environment:
+  #   - REDIS_HOST=redis
+  #   - REDIS_PASSWORD=${REDIS_PASSWORD}
+  #   networks:
+  #     cache_redis:
+  #       ipv4_address: 172.29.0.3
+  #   depends_on:
+  #   - redis
+  #   extra_hosts:
+  #     - "redisinsight.infra.docker:172.29.0.3"
+  #   volumes:
+  #   - ./Redis/redisinsight_data:/root/.redisinsight

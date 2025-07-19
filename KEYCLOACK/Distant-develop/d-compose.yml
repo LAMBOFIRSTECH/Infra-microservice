@@ -1,0 +1,127 @@
+volumes:
+  pg_data:
+  data:
+  shared-secret:
+    external: true
+
+networks:
+  net_api:
+    external: true
+
+services:
+  postgres:
+    image: lambops/postgres:secure
+    container_name: KEYCLOAK_POSTGRES-DB
+    restart: always
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-U",
+          "postgres",
+          "-d",
+          "keycloak_db",
+          "-h",
+          "172.28.0.33",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./.config.d/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./.config.d/pg_hba.conf:/etc/postgresql/config.d/pg_hba.conf
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+      - "-c"
+      - "hba_file=/etc/postgresql/config.d/pg_hba.conf"
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.33
+
+  keycloak:
+    image: lambops/keycloak:secure
+    container_name: KEYCLOAK
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    volumes:
+      - ./Certs/backend.crt:/opt/keycloak/certs/backend.crt:ro
+      - ./Certs/backend.key:/opt/keycloak/certs/backend.key:ro
+      - ./Certs/vault-ca.crt:/opt/keycloak/certs/vault-ca.crt:ro
+      - ./keycloak_pass.sh:/opt/keycloak/conf/keycloak_pass.sh
+      - shared-secret:/opt/shared
+    healthcheck:
+      test:
+        ["CMD","curl","-k","-f","https://172.28.0.32:9000/cloak/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KC_DB_SCHEMA: keycloak_schema
+      KC_HTTP_RELATIVE_PATH: /cloak
+    expose:
+      - "8443"
+    depends_on:
+      - postgres
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.32
+
+  openldap:
+    image: lambops/openldap:secure
+    container_name: LDAP-ANNUAIRE
+    restart: always
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD", "supervisorctl", "status", "slapd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      LDAP_ORGANISATION: ${LDAP_ORGANIZATION}
+      LDAP_ADMIN_USER: ${LDAP_ADMIN_USER}
+      LDAP_TLS: "true"
+    volumes:
+      - ./Certs/backend.crt:/container/service/slapd/assets/certs/backend.crt:ro
+      - ./Certs/backend.key:/container/service/slapd/assets/certs/backend.key:ro
+      - ./ldap.conf:/usr/local/etc/openldap/ldap.conf:ro
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.31
+
+  phpldapadmin:
+    image: lambops/phpadminldap:secure
+    container_name: LDAP-INTERFACE
+    user: root
+    restart: always
+    healthcheck:
+      test: ["CMD", "supervisorctl", "status", "apache2", "php8-fpm"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      LDAP_PORT: 636
+      LDAP_TLS: True
+      LDAP_HOST: openldap
+      APACHE_DOCUMENT_ROOT: /var/www/localhost/htdocs
+      PHP_IDE_CONFIG: ServerName develop.lamboft.it
+      PHPLDAPADMIN_TRUST_PROXY_SSL: true
+      PHPLDAPADMIN_HTTPS: true
+    volumes:
+      - ./Certs/backend.crt:/var/www/localhost/htdocs/doc/certs/fullchain.pem:ro
+      - ./Certs/backend.key:/var/www/localhost/htdocs/doc/certs/privkey.pem:ro
+      - ./Provisionning/ssl.conf:/etc/apache2/sites-available/ssl.conf
+      - ./Provisionning/httpd.conf:/etc/apache2/httpd.conf
+      - ./Provisionning/config.php:/var/www/localhost/htdocs/config/config.php
+    depends_on:
+      - openldap
+    networks:
+      net_api:
+        ipv4_address: 172.28.0.30

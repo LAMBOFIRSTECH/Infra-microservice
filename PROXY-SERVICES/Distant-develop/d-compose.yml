@@ -1,0 +1,30 @@
+services:
+  envoy:
+    image: lambops/envoy:secure
+    container_name: PROXY-SERVICES-ENVOY
+    hostname: proxy.infra.docker
+    restart: always
+    volumes:
+      - ./envoy.yaml:/opt/envoy/envoy.yaml
+      - ./Certs:/opt/envoy/tls/
+    ports:
+      - "27017:27017"
+      - "27018:27018"
+    extra_hosts:
+      - "proxy.infra.docker:172.21.0.3"
+      - "vault.infra.docker:172.28.0.6"
+      - "gravitee-api.infra.docker:172.28.0.18"
+      - "mongo.infra.docker:172.19.0.3"
+    networks:
+      proxy-net:
+        ipv4_address: 172.21.0.3
+      storage_gravitee:
+      net_api:
+
+networks:
+  proxy-net:
+    external: true
+  net_api:
+    external: true
+  storage_gravitee:
+    external: true
