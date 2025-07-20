@@ -31,10 +31,6 @@ Below is a summarized tree structure of the project directories, highlighting th
     │   ├── data-mongo/             # MongoDB persistent data volume mount
     │   └── docker-compose.yml      # Gravitee suite orchestration
     │
-    ├── HARBOR/
-    │   ├── harbor/                 # Installer scripts & configuration templates
-    │   └── harbor-online-installer-v2.10.0.tgz  # Prepackaged installer archive
-    │
     ├── K6/ ( Tester la robustesse des backend avant déploiement)
     │   ├── file.k6.js               
     |
