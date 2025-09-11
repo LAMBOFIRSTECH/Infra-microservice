@@ -1,25 +1,25 @@
 # ╔══════════════════════════════════════════════════╗
-# ║# vault hashicorp 1.19.3 with no vulnerabilities  ║
-# ║- golang:1.24.2-alpine3.21                        ║
+# ║# Nomad hashicorp 1.10.4 with no vulnerabilities  ║
+# ║- golang:1.24.6-alpine3.21                        ║
 # ╚══════════════════════════════════════════════════╝
 
-FROM golang@sha256:3077e12cda6debf8a9eba8eba0b6b4efe6f9c17295a18e3883cc5797d1688acb AS builder
+FROM golang@sha256:1b26b8fd46237d69f526bd41df124cc9bbfc58e9b1f85267f708c58008b92843 AS builder
 LABEL stage="builder"
 ENV CGO_ENABLED=0
 
-RUN apk add --no-cache git=2.47.2-r0 && \
+RUN apk add --no-cache git && \
    git clone https://github.com/tianon/gosu.git /src/gosu
 
 WORKDIR /src/gosu
 # Compiler gosu avec CGO désactivé pour un binaire statique
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/gosu
 
-# Étape 2 : Image finale vault sans vulnérabilités
+# Étape 2 : Image finale nomad sans vulnérabilités
 FROM alpine@sha256:1c4eef651f65e2f7daee7ee785882ac164b02b78fb74503052a26dc061c90474
 
-# Installer les dépendances, créer l'utilisateur vault et préparer les répertoires
+# Installer les dépendances, créer l'utilisateur nomad et préparer les répertoires
 RUN apk add --no-cache  curl shadow ca-certificates && \
-    adduser -D -u 1000 -g 1000 vault
+    adduser -D -u 1000 -g 1000 nomad
 
 # Copier le binaire gosu compilé
 COPY --from=builder /usr/local/bin/gosu /usr/local/bin/gosu
@@ -30,16 +30,16 @@ LABEL maintainer="lamboartur94@gmail.com" \
     org.opencontainers.image.os="linux" \
     org.opencontainers.image.architecture="amd64" \
     org.opencontainers.image.version="v2" \
-    org.opencontainers.image.created="2025-04-14" \
-    org.opencontainers.image.description="vault hashicorp 1.19.3 with no vulnerabilities" \
+    org.opencontainers.image.created="2025-09-10" \
+    org.opencontainers.image.description="nomad hashicorp 1.10.4 with no vulnerabilities" \
     org.opencontainers.image.vendor="LAMBOFIRSTECH"
-ENV VERSION=1.19.3
+ENV VERSION=1.10.4
 
-ADD https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_linux_amd64.zip /tmp/
-ADD https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_SHA256SUMS      /tmp/
-ADD https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_SHA256SUMS.sig  /tmp/
+ADD https://releases.hashicorp.com/nomad/${VERSION}/nomad_${VERSION}_linux_amd64.zip /tmp/
+ADD https://releases.hashicorp.com/nomad/${VERSION}/nomad_${VERSION}_SHA256SUMS      /tmp/
+ADD https://releases.hashicorp.com/nomad/${VERSION}/nomad_${VERSION}_SHA256SUMS.sig  /tmp/
 
-ENV GOVER=1.24.3
+ENV GOVER=1.24.6
 RUN curl -sSL "https://go.dev/dl/go${GOVER}.linux-amd64.tar.gz" | tar -C /usr/local -xz
 ENV PATH="/usr/local/go/bin:$PATH"
 
@@ -47,53 +47,42 @@ WORKDIR /tmp/
 COPY main.go /tmp/
 
 # Créer un répertoire pour le projet Go et initialiser le module
-RUN mkdir -p /tmp/go_vault && \
-    cp /tmp/main.go /tmp/go_vault/ && \
-    cd /tmp/go_vault && \
+RUN mkdir -p /tmp/go_nomad && \
+    cp /tmp/main.go /tmp/go_nomad/ && \
+    cd /tmp/go_nomad && \
     go mod init deps_vuln && \
-    # Ajouter les modules nécessaires et récupérer les dépendances
     go get github.com/go-jose/go-jose/v3 && \
     go get github.com/golang-jwt/jwt/v4 && \
     go get golang.org/x/crypto/ssh && \
     go mod tidy && \
-    # Exécuter le code Go pour tester les modules
-    go run /tmp/go_vault/main.go
+    go run /tmp/go_nomad/main.go
 
 RUN apk --update add --virtual verify gpgme \
     && gpg --keyserver keyserver.ubuntu.com --recv-key 0x72D7468F \
-    && gpg --verify /tmp/vault_${VERSION}_SHA256SUMS.sig \
+    && gpg --verify /tmp/nomad_${VERSION}_SHA256SUMS.sig \
     && apk del verify \
-    && cat vault_${VERSION}_SHA256SUMS | grep linux_amd64 | sha256sum -c \
-    && unzip vault_${VERSION}_linux_amd64.zip \
-    && mv vault /usr/local/bin/ \
+    && cat nomad_${VERSION}_SHA256SUMS | grep linux_amd64 | sha256sum -c \
+    && unzip nomad_${VERSION}_linux_amd64.zip \
+    && mv nomad /usr/local/bin/ \
     && rm -rf /var/cache/apk/* \
-    && rm /tmp/vault_1.19.3_*
+    && rm /tmp/nomad_1.10.4_*
 
-WORKDIR /vault
+WORKDIR /nomad
 
-COPY vault-init.sh /vault/vault-init.sh
-COPY vault-auth.sh /vault/vault-auth.sh
-COPY vault-server-config.hcl /vault/config/vault-server-config.hcl
-COPY vault-agent-config.hcl /vault/config/vault-agent-config.hcl
-
-RUN mkdir -p /opt/vault/tls && \
+RUN mkdir -p /opt/nomad/tls && \
     groupadd ssl-cert && \
-    usermod -aG ssl-cert vault && \
-    mkdir -p /usr/local/share/ca-certificates && \
-    mkdir -p /vault/shared
+    usermod -aG ssl-cert nomad && \
+    mkdir -p /usr/local/share/ca-certificates
 
-COPY Certs/backend.crt  /opt/vault/tls/backend.crt
-COPY Certs/backend.key  /opt/vault/tls/backend.key
+COPY nomad-server-config.hcl /nomad/nomad-server-config.hcl
 COPY Certs/vault-ca.crt /usr/local/share/ca-certificates/vault-ca.crt
      
-RUN chmod -R 755 /vault && \
-    chown -R vault:vault /vault && \
-    chown -R vault:vault /vault/* && \
-    chown -R vault:ssl-cert /opt/vault/tls && \
-    chmod 600 /opt/vault/tls/backend.key && \
+RUN chmod -R 755 /nomad && \
+    chown -R nomad: /nomad && \
+    chown -R nomad: /nomad/* && \
+    chown -R nomad:ssl-cert /opt/nomad/tls && \
     update-ca-certificates && \
-    cp /usr/local/share/ca-certificates/vault-ca.crt /opt/vault/tls/vault-ca.crt
+    cp /usr/local/share/ca-certificates/vault-ca.crt /opt/nomad/tls/vault-ca.crt
 
-USER vault
-# Expose TCP listener port
-EXPOSE 8200
+USER nomad
+EXPOSE 4646 4647 4648
