@@ -1,0 +1,76 @@
+{
+    "job": [
+        {
+            "rp-apache": [
+                {
+                    "datacenters": [
+                        "dc1"
+                    ],
+                    "group": [
+                        {
+                            "web_server": [
+                                {
+                                    "count": 1,
+                                    "network": [
+                                        {
+                                            "port": [
+                                                {
+                                                    "http": [
+                                                        {
+                                                            "to": 80
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "service": [
+                                        {
+                                            "check": [
+                                                {
+                                                    "interval": "10s",
+                                                    "path": "/",
+                                                    "timeout": "2s",
+                                                    "type": "http"
+                                                }
+                                            ],
+                                            "name": "server-web-apache",
+                                            "port": "http",
+                                            "provider": "nomad"
+                                        }
+                                    ],
+                                    "task": [
+                                        {
+                                            "rp-apache": [
+                                                {
+                                                    "config": [
+                                                        {
+                                                            "image": "httpd:2.4",
+                                                            "ports": [
+                                                                "http"
+                                                            ],
+                                                            "volumes": [
+                                                                "/opt/nomad/apache-html:/usr/local/apache2/htdocs:ro"
+                                                            ]
+                                                        }
+                                                    ],
+                                                    "driver": "docker",
+                                                    "resources": [
+                                                        {
+                                                            "cpu": 250,
+                                                            "memory": 250
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
